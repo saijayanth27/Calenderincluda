@@ -1,0 +1,18 @@
+{
+  "widget": {
+    "name": "Booking Calendar POC",
+    "version": "1.0.0",
+    "scopes": [
+      "Creator.user.all"
+    ],
+    "components": [
+      {
+        "location": "index.html",
+        "name": "index"
+      }
+    ],
+    "domains": [
+      "https.cdn.jsdelivr.net"
+    ]
+  }
+}

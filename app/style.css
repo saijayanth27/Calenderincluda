@@ -1,0 +1,55 @@
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  padding: 12px;
+  background: #f7f9fc;
+}
+
+.topbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#calendar {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.legend .chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: white;
+  font-size: 13px;
+}
+
+.mass-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.selected-count {
+  font-weight: 600;
+}
+
+.fc .fc-toolbar-chunk {
+  gap: 8px;
+}
+
