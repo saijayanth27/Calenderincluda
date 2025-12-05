@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- 3️⃣ Load Bookings ---
   function loadBookings() {
+
     var config = {
       app_name: "calender-includa",
       report_name: "All_Bookings"
@@ -78,66 +79,81 @@ document.addEventListener("DOMContentLoaded", function () {
       var recordArr = response.data;
       console.log("recordArr", recordArr);
       
-      // robust date parser / formatter for FullCalendar
+      // proper Zoho date formatter
       function formatDate(dateStr) {
         if (!dateStr) return null;
 
-        // Example input: "10-Nov-2025"
+        // strip time if exists
+        dateStr = dateStr.split(" ")[0];
+
         const months = {
           Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
           Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
         };
 
-        const [day, mon, year] = dateStr.split('-');
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return null;
+
+        const [day, mon, year] = parts;
         const month = months[mon];
 
-        // Output: YYYY-MM-DD
         return `${year}-${month}-${day.padStart(2, '0')}`;
       }
 
-      // ✅ Map Creator data to FullCalendar format
+      // Map Creator data to FullCalendar format
       const events = recordArr.map(rec => ({
         id: rec.ID,
-        title: rec.Title || "Untitled Booking",  
-        start: formatDate(rec.Start_Time1),              
+        
+        title:
+          (rec.Participant_Name || rec.Participant_Name?.first_name || "No Participant")
+          + " - " +
+          (rec.Support_Worker?.zc_display_value || rec.Support_Worker?.first_name || "No Worker"),
+
+        start: rec.Start_Date_and_Time ? formatDate(rec.Start_Date_and_Time) : null,
+
         backgroundColor: "#007bff",
         borderColor: "#007bff",
+
         extendedProps: {
-            Support_Worker: rec.Support_Worker?.display_value || "Not Assigned",
-            Participant: rec.Participant?.display_value || "Not Assigned",
-            Repeat: rec.Repeat
+          Support_Worker: rec.Support_Worker?.zc_display_value || "Not Assigned",
+          Participant: rec.Participant_Name|| "Not Assigned",
+          Repeat: rec.Repeat
         }
       }));
 
-      // ✅ Load events into the calendar
       calendar.removeAllEvents();
       calendar.addEventSource(events);
+
       console.log("✅ Calendar updated with Creator data:", events);
     });
   }
 
-  // Load data with small delay
+  // Load data with slight delay
   setTimeout(() => {
     loadSupportWorkers();
     loadBookings();
-  }, 100);
+  }, 200);
 
-  // --- 4️⃣ Refresh after Form Submit ---
-  const iframe = document.getElementById("creatorFormFrame");
+  // --- 4️⃣ Refresh after CRM form submit ---
+  const iframe = document.getElementById("crmFormFrame");
   iframe.addEventListener("load", async function () {
     try {
-      const currentURL = iframe.contentWindow.location.href;
-      if (currentURL.includes("success") || currentURL.includes("thankyou")) {
+      const url = iframe.contentWindow.location.href;
+      console.log("iframe URL:", url);
+
+      if (url.includes("success") || url.includes("thankyou")) {
         const modalEl = document.getElementById("creatorFormModal");
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
+
         if (modalInstance) {
           modalInstance.hide();
         }
+
         loadBookings();
       }
+
     } catch (e) {
-      // Cross-origin iframe access might fail, that's okay
-      console.log("iframe check skipped (cross-origin)");
+      console.log("⚠️ Cross origin - skipping iframe URL check");
     }
   });
 
