@@ -16,6 +16,39 @@
   <link rel="stylesheet" href="style.css" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <style>
+    /* Additional iframe stabilization */
+    #creatorFormFrame {
+      border: none;
+      width: 100%;
+      height: 100%;
+      min-height: 700px;
+      overflow-y: auto !important;
+      overflow-x: hidden;
+    }
+    
+    .modal-body {
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      height: 85vh !important;
+      max-height: 800px;
+      min-height: 700px;
+      display: flex !important;
+      flex-direction: column;
+      padding: 0 !important;
+    }
+    
+    .modal-dialog {
+      max-width: 95% !important;
+      width: 900px !important;
+      margin: 1.75rem auto;
+    }
+    
+    .modal-content {
+      max-height: 90vh;
+    }
+  </style>
 </head>
 <body>
 
@@ -52,15 +85,23 @@
 
   <!-- 🔹 Popup with Creator Form (iframe) -->
   <div class="modal fade" id="creatorFormModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
+
         <div class="modal-header">
           <h5 class="modal-title">Add New Booking</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
+
         <div class="modal-body p-0">
-          <iframe height='500px' width='100%' frameborder='0' allowTransparency='true' scrolling='auto' src='https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M'></iframe>
+          <iframe 
+            id="creatorFormFrame"
+            src="https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M?embed=true&hide_header=true"
+            scrolling="yes"
+            allow="fullscreen">
+          </iframe>
         </div>
+
       </div>
     </div>
   </div>
@@ -68,5 +109,40 @@
   <!-- Custom JS -->
   <script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
   <script src="widget.js"></script>
+  
+  <script>
+    // Prevent iframe from trying to resize dynamically (which can cause breaks)
+    window.addEventListener("message", function (e) {
+      // Only log, don't resize - let CSS handle it
+      if (e.data && e.data.height) {
+        console.log("Form height message received:", e.data.height);
+      }
+    });
+    
+    // Fast reload only after successful form submission
+    let needsReload = false;
+    
+    document.getElementById('creatorFormModal').addEventListener('hidden.bs.modal', function () {
+      // Mark for reload after modal closes (if form was submitted)
+      if (needsReload) {
+        const iframe = document.getElementById('creatorFormFrame');
+        iframe.src = iframe.src; // Quick reload
+        needsReload = false;
+      }
+    });
+    
+    // Detect when form is submitted successfully
+    const iframe = document.getElementById('creatorFormFrame');
+    iframe.addEventListener('load', function() {
+      try {
+        const url = iframe.contentWindow.location.href;
+        if (url.includes('success') || url.includes('thankyou')) {
+          needsReload = true; // Mark that we need to reload next time
+        }
+      } catch(e) {
+        // Cross-origin, can't check URL
+      }
+    });
+  </script>
 </body>
 </html>

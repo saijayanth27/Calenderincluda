@@ -52,3 +52,41 @@ body {
 .fc .fc-toolbar-chunk {
   gap: 8px;
 }
+
+/* Modal Styling - Fixed and Stable */
+.modal-dialog {
+  max-width: 95% !important;
+  width: 900px !important;
+  margin: 1.75rem auto;
+}
+
+.modal-content {
+  border-radius: 10px;
+  overflow: hidden;
+  max-height: 90vh;
+}
+
+.modal-body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 85vh !important;
+  max-height: 800px;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column;
+}
+
+/* Iframe Stability */
+#creatorFormFrame {
+  border: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 700px;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+}
+
+.modal-body iframe {
+  scrollbar-width: thin;
+}
