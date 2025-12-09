@@ -53,7 +53,7 @@ body {
   gap: 8px;
 }
 
-/* Modal Styling - Fixed and Stable */
+/* Modal Styling - Respects Form Layout */
 .modal-dialog {
   max-width: 95% !important;
   width: 900px !important;
@@ -63,28 +63,32 @@ body {
 .modal-content {
   border-radius: 10px;
   overflow: hidden;
-  max-height: 90vh;
+  max-height: 88vh;
+}
+
+.modal-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
 }
 
 .modal-body {
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  height: 85vh !important;
-  max-height: 800px;
   padding: 0 !important;
-  display: flex !important;
-  flex-direction: column;
+  height: 75vh !important;
+  max-height: 750px !important;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Iframe Stability */
+/* Iframe - Natural height, lets form render properly */
 #creatorFormFrame {
   border: none !important;
   width: 100% !important;
-  height: 100% !important;
-  flex: 1 !important;
-  min-height: 700px;
-  overflow-y: auto !important;
-  overflow-x: hidden;
+  min-height: 600px;
+  height: auto;
+  overflow: visible !important;
+  display: block;
 }
 
 .modal-body iframe {

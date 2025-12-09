@@ -1,160 +1,190 @@
 document.addEventListener("DOMContentLoaded", function () {
 
-  // --- 1️⃣ Setup Calendar ---
-  const calendarEl = document.getElementById("calendar");
-  const calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "dayGridMonth",
-    headerToolbar: {
-      left: "prev,next today",
-      center: "title",
-      right: "dayGridMonth,timeGridWeek,timeGridDay",
-    },
-    showNonCurrentDates: false,
-    fixedWeekCount: false,  
-    dateClick: function (info) {
-      const modal = new bootstrap.Modal(
-        document.getElementById("creatorFormModal")
-      );
-      modal.show();
-    },
-    events: [] 
-  });
+    // ---------- 1️⃣ Setup Calendar ----------
+    const calendarEl = document.getElementById("calendar");
 
-  calendar.render();
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "dayGridMonth",
+        headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
+        },
+        showNonCurrentDates: false,
+        fixedWeekCount: false,
 
-  // --- 2️⃣ Load Support Workers ---
-  async function loadSupportWorkers() {
-    try {
-      const response = await ZOHO.CREATOR.DATA.getRecords({
-        app_name: "calender-includa",
-        report_name: "All_Support_Workers"
-      });
+        dateClick: function () {
+            openBlankForm(); // open new booking form
+        },
 
-      const workerList = response.data;
-      console.log("Workers:", workerList);
+        eventClick: function (info) {
+            prefillForm(info.event); // open event data in form
+        },
 
-      const workerDropdown = document.getElementById("workerFilter");
-      const reassignDropdown = document.getElementById("reassignTo");
+        events: []
+    });
 
-      // Clear existing
-      workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
-      if (reassignDropdown) {
-        reassignDropdown.innerHTML = `<option value="">— Reassign to —</option>`;
-      }
+    calendar.render();
 
-      workerList.forEach(w => {
-        const name = w.Name?.first_name || w.Name?.zc_display_value || "Unknown";
-        
-        // Add to filter dropdown
-        const opt1 = document.createElement("option");
-        opt1.value = w.ID;
-        opt1.textContent = name;
-        workerDropdown.appendChild(opt1);
-        
-        // Add to reassign dropdown
-        if (reassignDropdown) {
-          const opt2 = document.createElement("option");
-          opt2.value = w.ID;
-          opt2.textContent = name;
-          reassignDropdown.appendChild(opt2);
+    // ---------- 2️⃣ Load Support Workers ----------
+    async function loadSupportWorkers() {
+        try {
+            const response = await ZOHO.CREATOR.DATA.getRecords({
+                app_name: "calender-includa",
+                report_name: "All_Support_Workers"
+            });
+
+            const workerList = response.data;
+            console.log("Workers:", workerList);
+
+            const workerDropdown = document.getElementById("workerFilter");
+
+            workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
+
+            workerList.forEach(w => {
+                const name = w.Name?.first_name || w.Name?.zc_display_value || "Unknown";
+
+                const opt = document.createElement("option");
+                opt.value = w.ID;
+                opt.textContent = name;
+
+                workerDropdown.appendChild(opt);
+            });
+
+        } catch (e) {
+            console.error("Error loading workers:", e);
         }
-      });
-
-      console.log("✅ Worker dropdown populated");
-
-    } catch (e) {
-      console.error("Error loading workers", e);
     }
-  }
 
-  // --- 3️⃣ Load Bookings ---
-  function loadBookings() {
+    // ---------- 3️⃣ Load Bookings ----------
+    function loadBookings() {
 
-    var config = {
-      app_name: "calender-includa",
-      report_name: "All_Bookings"
-    };
-
-    ZOHO.CREATOR.DATA.getRecords(config).then(function (response) {
-      var recordArr = response.data;
-      console.log("recordArr", recordArr);
-      
-      // proper Zoho date formatter
-      function formatDate(dateStr) {
-        if (!dateStr) return null;
-
-        // strip time if exists
-        dateStr = dateStr.split(" ")[0];
-
-        const months = {
-          Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
-          Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12'
+        const config = {
+            app_name: "calender-includa",
+            report_name: "All_Bookings"
         };
 
-        const parts = dateStr.split('-');
-        if (parts.length !== 3) return null;
+        ZOHO.CREATOR.DATA.getRecords(config).then(function (response) {
 
-        const [day, mon, year] = parts;
-        const month = months[mon];
+            const recordArr = response.data;
+            console.log("Bookings (raw):", recordArr);
 
-        return `${year}-${month}-${day.padStart(2, '0')}`;
-      }
+            function formatDateForCalendar(dateStr) {
+                if (!dateStr) return null;
 
-      // Map Creator data to FullCalendar format
-      const events = recordArr.map(rec => ({
-        id: rec.ID,
-        
-        title:
-          (rec.Participant_Name || rec.Participant_Name?.first_name || "No Participant")
-          + " - " +
-          (rec.Support_Worker?.zc_display_value || rec.Support_Worker?.first_name || "No Worker"),
+                dateStr = dateStr.split(" ")[0];
 
-        start: rec.Start_Date_and_Time ? formatDate(rec.Start_Date_and_Time) : null,
+                const months = {
+                    Jan: "01", Feb: "02", Mar: "03", Apr: "04",
+                    May: "05", Jun: "06", Jul: "07", Aug: "08",
+                    Sep: "09", Oct: "10", Nov: "11", Dec: "12"
+                };
 
-        backgroundColor: "#007bff",
-        borderColor: "#007bff",
+                const parts = dateStr.split("-");
+                if (parts.length !== 3) return null;
 
-        extendedProps: {
-          Support_Worker: rec.Support_Worker?.zc_display_value || "Not Assigned",
-          Participant: rec.Participant_Name|| "Not Assigned",
-          Repeat: rec.Repeat
-        }
-      }));
+                const [day, mon, year] = parts;
 
-      calendar.removeAllEvents();
-      calendar.addEventSource(events);
+                return `${year}-${months[mon]}-${day.padStart(2, "0")}`;
+            }
 
-      console.log("✅ Calendar updated with Creator data:", events);
-    });
-  }
+            const events = recordArr.map(rec => {
 
-  // Load data with slight delay
-  setTimeout(() => {
-    loadSupportWorkers();
-    loadBookings();
-  }, 200);
+                const participantName =
+                    rec.Participant_Name2 ||
+                    rec.Participant_Name2?.zc_display_value ||
+                    rec.Participant_Name2?.first_name ||
+                    "No Participant";
 
-  // --- 4️⃣ Refresh after CRM form submit ---
-  const iframe = document.getElementById("crmFormFrame");
-  iframe.addEventListener("load", async function () {
-    try {
-      const url = iframe.contentWindow.location.href;
-      console.log("iframe URL:", url);
+                const workerName =
+                    rec.Support_Worker?.zc_display_value ||
+                    rec.Support_Worker?.first_name ||
+                    rec.Support_Worker ||
+                    "No Worker";
 
-      if (url.includes("success") || url.includes("thankyou")) {
-        const modalEl = document.getElementById("creatorFormModal");
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                return {
+                    id: rec.ID,
+                    title: `${workerName} - ${participantName}`,
 
-        if (modalInstance) {
-          modalInstance.hide();
-        }
+                    start: rec.Start_Date_and_Time
+                        ? formatDateForCalendar(rec.Start_Date_and_Time)
+                        : null,
 
-        loadBookings();
-      }
+                    backgroundColor: "#007bff",
+                    borderColor: "#007bff",
 
-    } catch (e) {
-      console.log("⚠️ Cross origin - skipping iframe URL check");
+                    extendedProps: {
+                        participantName,
+                        // 👇 use the CRM ID that your integration field uses
+                        participantCRMID: rec.Participant_Name2_ID,  // adjust field name if needed
+                        workerName,
+                        workerID: rec.Support_Worker?.ID,
+                        rawStart: rec.Start_Date_and_Time,
+                        rawEnd: rec.End_Date_and_Time
+                    }
+                };
+            });
+
+            console.log("Calendar events:", events);
+
+            calendar.removeAllEvents();
+            calendar.addEventSource(events);
+        });
     }
-  });
+
+    setTimeout(() => {
+        loadSupportWorkers();
+        loadBookings();
+    }, 200);
+
+    // ---------- 4️⃣ Function: open blank form ----------
+    function openBlankForm() {
+        const iframe = document.getElementById("crmFormFrame");
+
+        iframe.src =
+            "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M" +
+            "?embed=true&hide_header=true&formAutoResize=true";
+
+        new bootstrap.Modal(document.getElementById("creatorFormModal")).show();
+    }
+
+    // ---------- 5️⃣ Function: prefill form ----------
+    function prefillForm(event) {
+
+        const workerValue = event.extendedProps.workerID || "";
+        const participantCRMID = event.extendedProps.participantCRMID || "";
+        const rawStart = event.extendedProps.rawStart || "";
+        const rawEnd = event.extendedProps.rawEnd || "";
+
+        console.log("workerValue:", workerValue);
+        console.log("participantCRMID:", participantCRMID);
+        console.log("rawStart:", rawStart);
+        console.log("rawEnd:", rawEnd);
+
+        const iframe = document.getElementById("crmFormFrame");
+        let baseUrl =
+            "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M";
+
+        iframe.src =
+            `${baseUrl}?Support_Worker=${encodeURIComponent(workerValue)}` +
+            `&participant_crm_id=${encodeURIComponent(participantCRMID)}` +
+            `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
+            `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
+            `&embed=true&hide_header=true&formAutoResize=true`;
+
+        new bootstrap.Modal(document.getElementById("creatorFormModal")).show();
+    }
+
+    // ---------- 6️⃣ Refresh calendar after form save ----------
+    document.getElementById("crmFormFrame").addEventListener("load", function () {
+        try {
+            const url = this.contentWindow.location.href;
+            if (url.includes("success") || url.includes("thankyou")) {
+                loadBookings();
+            }
+        } catch (e) {
+            console.log("Cross-origin iframe skip");
+        }
+    });
 
 });
