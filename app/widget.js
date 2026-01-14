@@ -316,8 +316,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ---------- 8️⃣ Submit Filters Button ----------
   document.getElementById("submitFilters").addEventListener("click", function () {
-    const participantID = document.getElementById("participantFilter").value;
-    const workerID = document.getElementById("workerFilter").value;
+    const participantDropdown = document.getElementById("participantFilter");
+    const workerDropdown = document.getElementById("workerFilter");
+    const participantSearchInput = document.getElementById("participantSearch");
+    const workerSearchInput = document.getElementById("workerSearch");
+
+    // Check if user has made a selection (either specific or "All")
+    const participantSelected = participantSearchInput.value.trim() !== "";
+    const workerSelected = workerSearchInput.value.trim() !== "";
+
+    // Only search if at least one filter has been explicitly selected
+    if (!participantSelected && !workerSelected) {
+      alert("Please select at least one filter option (you can select 'All Participants' or 'All Workers' to see all bookings)");
+      return;
+    }
+
+    const participantID = participantDropdown.value;
+    const workerID = workerDropdown.value;
 
     // Load bookings with selected filters
     loadBookings(participantID, workerID);
@@ -457,17 +472,15 @@ document.addEventListener("DOMContentLoaded", function () {
   // When selecting from dropdown, update search input and close dropdown
   participantDropdown.addEventListener("change", function () {
     const selectedOption = this.options[this.selectedIndex];
-    if (selectedOption.value !== "") {
-      participantSearchInput.value = selectedOption.textContent;
-    }
+    // Show selected option text in search field (including "All Participants")
+    participantSearchInput.value = selectedOption.textContent;
     hideDropdown(participantDropdown, participantSearchInput);
   });
 
   workerDropdown.addEventListener("change", function () {
     const selectedOption = this.options[this.selectedIndex];
-    if (selectedOption.value !== "") {
-      workerSearchInput.value = selectedOption.textContent;
-    }
+    // Show selected option text in search field (including "All Workers")
+    workerSearchInput.value = selectedOption.textContent;
     hideDropdown(workerDropdown, workerSearchInput);
   });
 

@@ -61,29 +61,37 @@
   <!-- 🔹 Filters + Actions -->
   <div class="topbar">
     <div class="filters">
+      <label for="participantSearch"
+        style="font-size: 14px; margin-right: 8px;padding-bottom: 8px; font-weight: 500;">Participant /
+        Client:</label>
       <div style="display: inline-block; position: relative;">
-        <label for="participantSearch" class="form-label mb-0">Participant / Client</label>
         <input id="participantSearch" type="text" class="form-control" placeholder="Search participant..."
-          style="width:240px; font-size: 13px; padding: 4px 8px;" autocomplete="off" />
+          style="width:280px; font-size: 14px; padding: 8px 10px;" autocomplete="off" />
         <select id="participantFilter" class="form-select searchable-dropdown"
-          style="width:240px; height: 200px; display: none;" size="8">
+          style="width:280px; height: 280px; display: none;" size="8">
           <option value="">— All Participants —</option>
         </select>
       </div>
 
+      <label for="workerSearch"
+        style="font-size: 14px; margin-right: 8px;padding-bottom: 8px; margin-left: 16px; font-weight: 500;">Support
+        Worker:</label>
       <div style="display: inline-block; position: relative;">
-        <label for="workerSearch" class="form-label mb-0">Support Worker</label>
         <input id="workerSearch" type="text" class="form-control" placeholder="Search worker..."
-          style="width:220px; font-size: 13px; padding: 4px 8px;" autocomplete="off" />
+          style="width:260px; font-size: 14px; padding: 8px 10px;" autocomplete="off" />
         <select id="workerFilter" class="form-select searchable-dropdown"
-          style="width:220px; height: 200px; display: none;" size="8">
+          style="width:260px; height: 280px; display: none;" size="8">
           <option value="">— All Workers —</option>
         </select>
       </div>
 
-      <button id="submitFilters" class="btn btn-primary">Submit</button>
-      <button id="clearFilters" class="btn btn-outline-secondary">Clear Filters</button>
+      <button id="submitFilters" class="btn btn-primary"
+        style="padding: 8px 18px; font-size: 14px; margin-left: 16px;">Search</button>
+      <button id="clearFilters" class="btn btn-outline-secondary" style="padding: 8px 18px; font-size: 14px;">Clear
+        Filters</button>
     </div>
+  </div>
+  </div>
   </div>
 
   <!-- 🔹 Calendar Area -->
