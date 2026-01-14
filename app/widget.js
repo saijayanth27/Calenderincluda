@@ -34,29 +34,75 @@ document.addEventListener("DOMContentLoaded", function () {
   // ---------- 2️⃣ Load Support Workers ----------
   async function loadSupportWorkers() {
     try {
-      const response = await ZOHO.CREATOR.DATA.getRecords({
-        app_name: "calender-includa",
-        report_name: "All_Support_Workers",
-      });
+      console.log("Starting to load support workers...");
+      let allWorkers = [];
+      const maxRecords = 200;
+      let hasMoreRecords = true;
+      let recordCursor = null;
 
-      const workerList = response.data || [];
+      // Fetch all workers using pagination with record_cursor
+      while (hasMoreRecords) {
+        console.log(`Fetching workers batch... (cursor: ${recordCursor ? 'yes' : 'first'})`);
+
+        // Add delay to avoid rate limiting (250ms between requests)
+        if (recordCursor) {
+          await sleep(250);
+        }
+
+        const params = {
+          app_name: "calender-includa",
+          report_name: "All_Support_Workers",
+          max_records: maxRecords
+        };
+
+        // Add record_cursor if we have one (for subsequent pages)
+        if (recordCursor) {
+          params.record_cursor = recordCursor;
+        }
+
+        const response = await ZOHO.CREATOR.DATA.getRecords(params);
+
+        console.log(`Response:`, response);
+
+        const workerList = response.data || [];
+        console.log(`Received ${workerList.length} workers`);
+
+        // Log first worker ID to verify we're getting different records
+        if (workerList.length > 0) {
+          console.log(`First worker ID in this batch: ${workerList[0].ID}`);
+          allWorkers = allWorkers.concat(workerList);
+        }
+
+        // Check if there's a record_cursor for the next page
+        if (response.record_cursor && workerList.length === maxRecords) {
+          recordCursor = response.record_cursor;
+          console.log(`Has more records, cursor: ${recordCursor.substring(0, 20)}...`);
+        } else {
+          hasMoreRecords = false;
+          console.log(`Finished loading workers - no more pages`);
+        }
+      }
+
+      console.log(`Total support workers loaded: ${allWorkers.length}`);
+
       const workerDropdown = document.getElementById("workerFilter");
-
       if (!workerDropdown) return;
 
       workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
 
-      workerList.forEach(w => {
+      allWorkers.forEach(w => {
         const name =
           w.Name?.first_name ||
           w.Name?.zc_display_value ||
           "Unknown";
 
         const opt = document.createElement("option");
-        opt.value = w.ID;
+        opt.value = name;  // Use name instead of ID for filtering
         opt.textContent = name;
         workerDropdown.appendChild(opt);
       });
+
+      console.log("Support workers dropdown populated successfully");
 
     } catch (e) {
       console.error("Error loading workers:", e);
@@ -66,15 +112,56 @@ document.addEventListener("DOMContentLoaded", function () {
   // ---------- 2️⃣.5 Load Participants ----------
   async function loadParticipants() {
     try {
-      console.log("Loading participants...");
-      const response = await ZOHO.CREATOR.DATA.getRecords({
-        app_name: "calender-includa",
-        report_name: "All_Participants",
-      });
+      console.log("Starting to load participants...");
+      let allParticipants = [];
+      const maxRecords = 200;
+      let hasMoreRecords = true;
+      let recordCursor = null;
 
-      console.log("Participants response:", response);
-      const participantList = response.data || [];
-      console.log("Participant count:", participantList.length);
+      // Fetch all participants using pagination with record_cursor
+      while (hasMoreRecords) {
+        console.log(`Fetching participants batch... (cursor: ${recordCursor ? 'yes' : 'first'})`);
+
+        // Add delay to avoid rate limiting (250ms between requests)
+        if (recordCursor) {
+          await sleep(250);
+        }
+
+        const params = {
+          app_name: "calender-includa",
+          report_name: "All_Participants",
+          max_records: maxRecords
+        };
+
+        // Add record_cursor if we have one (for subsequent pages)
+        if (recordCursor) {
+          params.record_cursor = recordCursor;
+        }
+
+        const response = await ZOHO.CREATOR.DATA.getRecords(params);
+
+        console.log(`Response:`, response);
+
+        const participantList = response.data || [];
+        console.log(`Received ${participantList.length} participants`);
+
+        // Log first participant ID to verify we're getting different records
+        if (participantList.length > 0) {
+          console.log(`First participant ID in this batch: ${participantList[0].ID}`);
+          allParticipants = allParticipants.concat(participantList);
+        }
+
+        // Check if there's a record_cursor for the next page
+        if (response.record_cursor && participantList.length === maxRecords) {
+          recordCursor = response.record_cursor;
+          console.log(`Has more records, cursor: ${recordCursor.substring(0, 20)}...`);
+        } else {
+          hasMoreRecords = false;
+          console.log(`Finished loading participants - no more pages`);
+        }
+      }
+
+      console.log(`Total participants loaded: ${allParticipants.length}`);
 
       const participantDropdown = document.getElementById("participantFilter");
 
@@ -86,7 +173,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Reset to default option
       participantDropdown.innerHTML = `<option value="">— All Participants —</option>`;
 
-      participantList.forEach(p => {
+      allParticipants.forEach(p => {
         const name =
           p.Participant_Name?.zc_display_value ||
           p.Participant_Name?.first_name ||
@@ -102,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
         participantDropdown.appendChild(opt);
       });
 
-      console.log("Participants loaded successfully. Total:", participantList.length);
+      console.log("Participants dropdown populated successfully");
 
     } catch (e) {
       console.error("Error loading participants:", e);
