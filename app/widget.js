@@ -16,11 +16,11 @@ document.addEventListener("DOMContentLoaded", function () {
     fixedWeekCount: false,
 
     dateClick: function () {
-      openBlankForm(); // open new booking form
+      openBlankForm();
     },
 
     eventClick: function (info) {
-      prefillForm(info.event); // open event data in form
+      prefillForm(info.event);
     },
 
     events: [],
@@ -37,9 +37,10 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       const workerList = response.data || [];
-      console.log("Workers:", workerList);
-
       const workerDropdown = document.getElementById("workerFilter");
+
+      if (!workerDropdown) return;
+
       workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
 
       workerList.forEach(w => {
@@ -68,7 +69,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     ZOHO.CREATOR.DATA.getRecords(config).then(function (response) {
       const recordArr = response.data || [];
-      console.log("Bookings (raw):", recordArr);
 
       function formatDateForCalendar(dateStr) {
         if (!dateStr) return null;
@@ -89,20 +89,36 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const events = recordArr.map(rec => {
-        // ✅ Participant (Lookup)
+
+        // ✅ Participant (LOOKUP)
         const participantName =
           rec.Participant?.zc_display_value?.trim() || "No Participant";
-        const participantID = rec.Participant?.ID || "";
 
-        // ✅ Support Worker (Lookup)
-        const workerName =
-          rec.Support_Worker1?.zc_display_value?.trim() || "No Worker";
-        const workerID = rec.Support_Worker1?.ID || "";
+        const participantID =
+          rec.Participant?.ID || "";
+
+        // ✅ Support Worker (DROPDOWN – CORRECT)
+        let workerName = "No Worker";
+        let workerValue = "";
+
+        if (rec.Support_worker2) {
+          if (typeof rec.Support_worker2 === "object") {
+            workerName =
+              rec.Support_worker2.zc_display_value || "No Worker";
+
+            // 🔑 MUST be dropdown VALUE
+            workerValue =
+              rec.Support_worker2.value || "";
+          } 
+          else if (typeof rec.Support_worker2 === "string") {
+            workerName = rec.Support_worker2;
+            workerValue = rec.Support_worker2;
+          }
+        }
 
         return {
           id: rec.ID,
 
-          // ✅ Participant FIRST
           title: `${participantName} - ${workerName}`,
 
           start: rec.Start_Date_and_Time
@@ -113,17 +129,13 @@ document.addEventListener("DOMContentLoaded", function () {
           borderColor: "#007bff",
 
           extendedProps: {
-            participantName,
             participantID,
-            workerName,
-            workerID,
+            workerValue,
             rawStart: rec.Start_Date_and_Time,
             rawEnd: rec.End_Date_and_Time,
           },
         };
       });
-
-      console.log("Calendar events:", events);
 
       calendar.removeAllEvents();
       calendar.addEventSource(events);
@@ -150,10 +162,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ---------- 5️⃣ Prefill Form ----------
   function prefillForm(event) {
-    const workerID = event.extendedProps.workerID || "";
+
+    const workerValue = event.extendedProps.workerValue || "";
     const participantID = event.extendedProps.participantID || "";
     const rawStart = event.extendedProps.rawStart || "";
     const rawEnd = event.extendedProps.rawEnd || "";
+
+    console.log("Prefill Support Worker VALUE:", workerValue);
 
     const iframe = document.getElementById("crmFormFrame");
 
@@ -162,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     iframe.src =
       `${baseUrl}` +
-      `?Support_Worker=${encodeURIComponent(workerID)}` +
+      `?Support_worker2=${encodeURIComponent(workerValue)}` +
       `&Participant=${encodeURIComponent(participantID)}` +
       `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
       `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
@@ -173,7 +188,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ).show();
   }
 
-  // ---------- 6️⃣ Refresh Calendar After Form Save ----------
+  // ---------- 6️⃣ Refresh Calendar After Save ----------
   document
     .getElementById("crmFormFrame")
     .addEventListener("load", function () {
@@ -183,7 +198,7 @@ document.addEventListener("DOMContentLoaded", function () {
           loadBookings();
         }
       } catch (e) {
-        console.log("Cross-origin iframe skip");
+        // cross-origin ignore
       }
     });
 
