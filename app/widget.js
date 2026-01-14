@@ -89,6 +89,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       const events = recordArr.map(rec => {
+        console.log("rec:"+rec);
 
         // ✅ Participant (LOOKUP)
         const participantName =
@@ -124,15 +125,18 @@ document.addEventListener("DOMContentLoaded", function () {
           start: rec.Start_Date_and_Time
             ? formatDateForCalendar(rec.Start_Date_and_Time)
             : null,
-
           backgroundColor: "#007bff",
           borderColor: "#007bff",
-
           extendedProps: {
             participantID,
             workerValue,
             rawStart: rec.Start_Date_and_Time,
             rawEnd: rec.End_Date_and_Time,
+            status: rec.Status || "",
+            crmLink: rec.CRM_Link2 || "",
+            Booking_Type:rec.Recurring1 ||""
+
+
           },
         };
       });
@@ -163,30 +167,45 @@ document.addEventListener("DOMContentLoaded", function () {
   // ---------- 5️⃣ Prefill Form ----------
   function prefillForm(event) {
 
-    const workerValue = event.extendedProps.workerValue || "";
-    const participantID = event.extendedProps.participantID || "";
-    const rawStart = event.extendedProps.rawStart || "";
-    const rawEnd = event.extendedProps.rawEnd || "";
+  const workerValue   = event.extendedProps.workerValue || "";
+  const participantID = event.extendedProps.participantID || "";
+  const rawStart      = event.extendedProps.rawStart || "";
+  const rawEnd        = event.extendedProps.rawEnd || "";
+  const status        = event.extendedProps.status || "";
+  const crmLink       = event.extendedProps.crmLink || "";
+  const Booking_Type=event.extendedProps.Booking_Type||""
 
-    console.log("Prefill Support Worker VALUE:", workerValue);
+  console.log("Prefill values:", {
+    workerValue,
+    participantID,
+    rawStart,
+    rawEnd,
+    status,
+    crmLink,
+    Booking_Type
+  });
 
-    const iframe = document.getElementById("crmFormFrame");
+  const iframe = document.getElementById("crmFormFrame");
 
-    const baseUrl =
-      "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M";
+  const baseUrl =
+    "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M";
 
-    iframe.src =
-      `${baseUrl}` +
-      `?Support_worker2=${encodeURIComponent(workerValue)}` +
-      `&Participant=${encodeURIComponent(participantID)}` +
-      `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
-      `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
-      `&embed=true&hide_header=true&formAutoResize=true`;
+  iframe.src =
+    `${baseUrl}` +
+    `?Support_worker2=${encodeURIComponent(workerValue)}` +
+    `&Participant=${encodeURIComponent(participantID)}` +
+    `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
+    `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
+    `&Status=${encodeURIComponent(status)}` +
+    `&CRM_Link2=${encodeURIComponent(crmLink)}` +
+    `&Recurring1=${encodeURIComponent(Booking_Type)}`+
+    `&embed=true&hide_header=true&formAutoResize=true`;
 
-    new bootstrap.Modal(
-      document.getElementById("creatorFormModal")
-    ).show();
-  }
+  new bootstrap.Modal(
+    document.getElementById("creatorFormModal")
+  ).show();
+}
+
 
   // ---------- 6️⃣ Refresh Calendar After Save ----------
   document
