@@ -13,8 +13,57 @@ body {
 
 .filters {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filters>div {
+  display: flex;
+  flex-direction: column;
+}
+
+.filters select[size] {
+  height: auto !important;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Enhanced searchable dropdown styling */
+#participantSearch,
+#workerSearch {
+  border-radius: 4px !important;
+}
+
+#participantSearch.dropdown-open,
+#workerSearch.dropdown-open {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-bottom: none !important;
+}
+
+.searchable-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: 1px solid #dee2e6 !important;
+  font-size: 14px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: white;
+  margin-top: -1px;
+}
+
+.searchable-dropdown option {
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.searchable-dropdown option:hover {
+  background-color: #f0f0f0;
 }
 
 #calendar {

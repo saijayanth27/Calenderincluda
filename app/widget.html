@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <title>Scheduling POC - Filterable Calendar</title>
@@ -9,14 +10,14 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 
   <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="style.css" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
+
   <style>
     /* Stable iframe that respects form's natural layout */
     #creatorFormFrame {
@@ -26,7 +27,7 @@
       height: auto;
       overflow: visible;
     }
-    
+
     .modal-body {
       overflow-y: auto !important;
       overflow-x: hidden !important;
@@ -35,18 +36,18 @@
       max-height: 750px !important;
       -webkit-overflow-scrolling: touch;
     }
-    
+
     .modal-dialog {
       max-width: 95% !important;
       width: 900px !important;
       margin: 1.75rem auto;
     }
-    
+
     .modal-content {
       max-height: 88vh;
       overflow: hidden;
     }
-    
+
     .modal-header {
       flex-shrink: 0;
       border-bottom: 1px solid #dee2e6;
@@ -54,19 +55,33 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- 🔹 Filters + Actions -->
   <div class="topbar">
     <div class="filters">
-      <label for="workerFilter" class="form-label mb-0">Support Worker</label>
-      <select id="workerFilter" class="form-select" style="width:220px;">
-        <option value="">— All Workers —</option>
-      </select>
+      <div style="display: inline-block; position: relative;">
+        <label for="participantSearch" class="form-label mb-0">Participant / Client</label>
+        <input id="participantSearch" type="text" class="form-control" placeholder="Search participant..."
+          style="width:240px; font-size: 13px; padding: 4px 8px;" autocomplete="off" />
+        <select id="participantFilter" class="form-select searchable-dropdown"
+          style="width:240px; height: 200px; display: none;" size="8">
+          <option value="">— All Participants —</option>
+        </select>
+      </div>
 
-      <label for="participantSearch" class="form-label mb-0">Participant / Client</label>
-      <input id="participantSearch" type="text" class="form-control" placeholder="Search by participant name" style="width:240px;" />
+      <div style="display: inline-block; position: relative;">
+        <label for="workerSearch" class="form-label mb-0">Support Worker</label>
+        <input id="workerSearch" type="text" class="form-control" placeholder="Search worker..."
+          style="width:220px; font-size: 13px; padding: 4px 8px;" autocomplete="off" />
+        <select id="workerFilter" class="form-select searchable-dropdown"
+          style="width:220px; height: 200px; display: none;" size="8">
+          <option value="">— All Workers —</option>
+        </select>
+      </div>
 
+      <button id="submitFilters" class="btn btn-primary">Submit</button>
       <button id="clearFilters" class="btn btn-outline-secondary">Clear Filters</button>
     </div>
 
@@ -88,36 +103,30 @@
   <div class="legend" id="legend"></div>
 
   <!-- 🔹 Popup with Creator Form (iframe) -->
- <div class="modal fade" id="creatorFormModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add / Edit Booking</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
+  <div class="modal fade" id="creatorFormModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add / Edit Booking</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
 
-      <div class="modal-body p-0">
-        <iframe 
-          id="crmFormFrame"
-          width="100%"
-          height="550"
-          frameborder="0"
-          style="border:none; border-radius:8px;"
-          allowTransparency="true"
-          scrolling="no">
-        </iframe>
-      </div>
+        <div class="modal-body p-0">
+          <iframe id="crmFormFrame" width="100%" height="550" frameborder="0" style="border:none; border-radius:8px;"
+            allowTransparency="true" scrolling="no">
+          </iframe>
+        </div>
 
+      </div>
     </div>
   </div>
-</div>
 
 
   <!-- Custom JS -->
   <script src="https://js.zohostatic.com/creator/widgets/version/2.0/widgetsdk-min.js"></script>
   <script src="https://js.zohostatic.com/crm/v2.0/sdk.min.js"></script>
   <script src="widget.js"></script>
-  
+
   <script>
     // Prevent iframe from trying to resize dynamically (which can cause breaks)
     window.addEventListener("message", function (e) {
@@ -126,10 +135,10 @@
         console.log("Form height message received:", e.data.height);
       }
     });
-    
+
     // Fast reload only after successful form submission
     let needsReload = false;
-    
+
     document.getElementById('creatorFormModal').addEventListener('hidden.bs.modal', function () {
       // Mark for reload after modal closes (if form was submitted)
       if (needsReload) {
@@ -138,19 +147,20 @@
         needsReload = false;
       }
     });
-    
+
     // Detect when form is submitted successfully
     const iframe = document.getElementById('creatorFormFrame');
-    iframe.addEventListener('load', function() {
+    iframe.addEventListener('load', function () {
       try {
         const url = iframe.contentWindow.location.href;
         if (url.includes('success') || url.includes('thankyou')) {
           needsReload = true; // Mark that we need to reload next time
         }
-      } catch(e) {
+      } catch (e) {
         // Cross-origin, can't check URL
       }
     });
   </script>
 </body>
+
 </html>
