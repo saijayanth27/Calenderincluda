@@ -477,11 +477,29 @@ document.addEventListener("DOMContentLoaded", function () {
     hideDropdown(participantDropdown, participantSearchInput);
   });
 
+  // Handle click events on dropdown options (for already-selected items)
+  participantDropdown.addEventListener("click", function (e) {
+    if (e.target.tagName === "OPTION") {
+      const selectedOption = e.target;
+      participantSearchInput.value = selectedOption.textContent;
+      hideDropdown(participantDropdown, participantSearchInput);
+    }
+  });
+
   workerDropdown.addEventListener("change", function () {
     const selectedOption = this.options[this.selectedIndex];
     // Show selected option text in search field (including "All Workers")
     workerSearchInput.value = selectedOption.textContent;
     hideDropdown(workerDropdown, workerSearchInput);
+  });
+
+  // Handle click events on dropdown options (for already-selected items)
+  workerDropdown.addEventListener("click", function (e) {
+    if (e.target.tagName === "OPTION") {
+      const selectedOption = e.target;
+      workerSearchInput.value = selectedOption.textContent;
+      hideDropdown(workerDropdown, workerSearchInput);
+    }
   });
 
   // ---------- 4️⃣ Open Blank Form ----------
