@@ -294,10 +294,8 @@ document.addEventListener("DOMContentLoaded", function () {
               rawStart: rec.Start_Date_and_Time,
               rawEnd: rec.End_Date_and_Time,
               status: rec.Status || "",
-              crmLink: rec.CRM_Link2 || "",
+              crmLink: rec.CRM_Link_URL.url || "",
               Booking_Type: rec.Recurring1 || ""
-
-
             },
           };
         });
@@ -525,6 +523,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const status = event.extendedProps.status || "";
     const crmLink = event.extendedProps.crmLink || "";
     const Booking_Type = event.extendedProps.Booking_Type || ""
+    
 
     console.log("Prefill values:", {
       workerValue,
@@ -542,15 +541,16 @@ document.addEventListener("DOMContentLoaded", function () {
       "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M";
 
     iframe.src =
-      `${baseUrl}` +
-      `?Support_worker2=${encodeURIComponent(workerValue)}` +
-      `&Participant=${encodeURIComponent(participantID)}` +
-      `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
-      `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
-      `&Status=${encodeURIComponent(status)}` +
-      `&CRM_Link2=${encodeURIComponent(crmLink)}` +
-      `&Recurring1=${encodeURIComponent(Booking_Type)}` +
-      `&embed=true&hide_header=true&formAutoResize=true`;
+  `${baseUrl}` +
+  `?Support_worker2=${encodeURIComponent(workerValue)}` +
+  `&Participant=${encodeURIComponent(participantID)}` +
+  `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
+  `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
+  `&Status=${encodeURIComponent(status)}` +
+  `&Url.url=${encodeURIComponent(crmLink)}` +
+  `&Url.title=${encodeURIComponent("Open CRM Record")}` +
+  `&Recurring1=${encodeURIComponent(Booking_Type)}` +
+  `&embed=true&hide_header=true&formAutoResize=true`;
 
     new bootstrap.Modal(
       document.getElementById("creatorFormModal")
