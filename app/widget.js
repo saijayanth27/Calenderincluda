@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Show dates only in month view, hide in week/day views
   if (arg.view.type === 'dayGridMonth') {
     return {
-      html: `<div style="text-align: left; padding: 4px 8px;">${dateNum}</div>`
+      html: `<div style="text-align: left; padding: 4px 120px;">${dateNum}</div>`
     };
   }
   
@@ -290,142 +290,197 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ---------- 3️⃣ Load Bookings ----------
-  function loadBookings(filterParticipantID = "", filterWorkerID = "") {
-    const config = {
-      app_name: "calender-includa",
-      report_name: "All_Bookings",
-    };
+  // ---------- 3️⃣ Load Bookings (WITH PAGINATION) ----------
+function loadBookings(filterParticipantID = "", filterWorkerID = "") {
+  
+  async function fetchAllBookings() {
+    try {
+      console.log("Starting to load bookings...");
+      let allBookings = [];
+      const maxRecords = 200;
+      let hasMoreRecords = true;
+      let recordCursor = null;
 
-    ZOHO.CREATOR.DATA.getRecords(config).then(function (response) {
-      const recordArr = response.data || [];
+      // Fetch all bookings using pagination with record_cursor
+      while (hasMoreRecords) {
+        console.log(`Fetching bookings batch... (cursor: ${recordCursor ? 'yes' : 'first'})`);
 
-      // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
-      function formatDateTimeForCalendar(dateTimeStr) {
-        if (!dateTimeStr) return null;
+        // Add delay to avoid rate limiting (250ms between requests)
+        if (recordCursor) {
+          await sleep(250);
+        }
 
-        const months = {
-          Jan: "01", Feb: "02", Mar: "03", Apr: "04",
-          May: "05", Jun: "06", Jul: "07", Aug: "08",
-          Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+        const params = {
+          app_name: "calender-includa",
+          report_name: "All_Bookings",
+          max_records: maxRecords
         };
 
-        // Split date and time parts
-        const parts = dateTimeStr.trim().split(" ");
-        if (parts.length < 2) return null;
+        // Add record_cursor if we have one (for subsequent pages)
+        if (recordCursor) {
+          params.record_cursor = recordCursor;
+        }
 
-        const datePart = parts[0];
-        const timePart = parts[1];
+        const response = await ZOHO.CREATOR.DATA.getRecords(params);
 
-        // Parse date (e.g., "16-Jan-2026")
-        const dateParts = datePart.split("-");
-        if (dateParts.length !== 3) return null;
+        console.log(`Response:`, response);
 
-        const [day, mon, year] = dateParts;
-        const monthNum = months[mon];
-        if (!monthNum) return null;
+        const bookingList = response.data || [];
+        console.log(`Received ${bookingList.length} bookings`);
 
-        // Parse time (e.g., "14:30:00")
-        const timeParts = timePart.split(":");
-        if (timeParts.length < 2) return null;
+        // Log first booking ID to verify we're getting different records
+        if (bookingList.length > 0) {
+          console.log(`First booking ID in this batch: ${bookingList[0].ID}`);
+          allBookings = allBookings.concat(bookingList);
+        }
 
-        const [hour, minute] = timeParts;
-
-        // Return ISO 8601 format for FullCalendar
-        return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
+        // Check if there's a record_cursor for the next page
+        if (response.record_cursor && bookingList.length === maxRecords) {
+          recordCursor = response.record_cursor;
+          console.log(`Has more records, cursor: ${recordCursor.substring(0, 20)}...`);
+        } else {
+          hasMoreRecords = false;
+          console.log(`Finished loading bookings - total: ${allBookings.length}`);
+        }
       }
 
-      const events = recordArr
-        .filter(rec => {
-          // Apply filters
-          let matchesParticipant = true;
-          let matchesWorker = true;
+      return allBookings;
+    } catch (e) {
+      console.error("Error loading bookings:", e);
+      return [];
+    }
+  }
 
-          if (filterParticipantID) {
-            const participantID = rec.Participant?.ID || "";
-            matchesParticipant = participantID === filterParticipantID;
-          }
+  // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
+  function formatDateTimeForCalendar(dateTimeStr) {
+    if (!dateTimeStr) return null;
 
-          if (filterWorkerID) {
-            let workerValue = "";
-            if (rec.Support_worker2) {
-              if (typeof rec.Support_worker2 === "object") {
-                workerValue = rec.Support_worker2.value || "";
-              } else if (typeof rec.Support_worker2 === "string") {
-                workerValue = rec.Support_worker2;
-              }
-            }
-            matchesWorker = workerValue === filterWorkerID;
-          }
+    const months = {
+      Jan: "01", Feb: "02", Mar: "03", Apr: "04",
+      May: "05", Jun: "06", Jul: "07", Aug: "08",
+      Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+    };
 
-          return matchesParticipant && matchesWorker;
-        })
-        .map(rec => {
-          console.log("rec:" + rec);
+    // Split date and time parts
+    const parts = dateTimeStr.trim().split(" ");
+    if (parts.length < 2) return null;
 
-          // ✅ Participant (LOOKUP)
-          const participantName =
-            rec.Participant?.zc_display_value?.trim() || "No Participant";
+    const datePart = parts[0];
+    const timePart = parts[1];
 
-          const participantID =
-            rec.Participant?.ID || "";
+    // Parse date (e.g., "16-Jan-2026")
+    const dateParts = datePart.split("-");
+    if (dateParts.length !== 3) return null;
 
-          // ✅ Support Worker (DROPDOWN – CORRECT)
-          let workerName = "No Worker";
+    const [day, mon, year] = dateParts;
+    const monthNum = months[mon];
+    if (!monthNum) return null;
+
+    // Parse time (e.g., "14:30:00")
+    const timeParts = timePart.split(":");
+    if (timeParts.length < 2) return null;
+
+    const [hour, minute] = timeParts;
+
+    // Return ISO 8601 format for FullCalendar
+    return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
+  }
+
+  // Fetch all bookings (with pagination) then filter and display
+  fetchAllBookings().then(function (recordArr) {
+    const events = recordArr
+      .filter(rec => {
+        // Apply filters
+        let matchesParticipant = true;
+        let matchesWorker = true;
+
+        if (filterParticipantID) {
+          const participantID = rec.Participant?.ID || "";
+          matchesParticipant = participantID === filterParticipantID;
+        }
+
+        if (filterWorkerID) {
           let workerValue = "";
-
           if (rec.Support_worker2) {
             if (typeof rec.Support_worker2 === "object") {
-              workerName =
-                rec.Support_worker2.zc_display_value || "No Worker";
-
-              // 🔑 MUST be dropdown VALUE
-              workerValue =
-                rec.Support_worker2.value || "";
-            }
-            else if (typeof rec.Support_worker2 === "string") {
-              workerName = rec.Support_worker2;
+              workerValue = rec.Support_worker2.value || "";
+            } else if (typeof rec.Support_worker2 === "string") {
               workerValue = rec.Support_worker2;
             }
           }
+          matchesWorker = workerValue === filterWorkerID;
+        }
 
-          // Calculate end time as 1 hour after start for proper rendering
-          const startDateTime = rec.Start_Date_and_Time
-            ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
-            : null;
+        return matchesParticipant && matchesWorker;
+      })
+      .map(rec => {
+        console.log("rec:" + rec);
 
-          let endDateTime = null;
-          if (startDateTime) {
-            // Add 1 hour to start time for display purposes
-            const startDate = new Date(startDateTime);
-            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
-            endDateTime = endDate.toISOString().slice(0, 19);
+        // ✅ Participant (LOOKUP)
+        const participantName =
+          rec.Participant?.zc_display_value?.trim() || "No Participant";
+
+        const participantID =
+          rec.Participant?.ID || "";
+
+        // ✅ Support Worker (DROPDOWN – CORRECT)
+        let workerName = "No Worker";
+        let workerValue = "";
+
+        if (rec.Support_worker2) {
+          if (typeof rec.Support_worker2 === "object") {
+            workerName =
+              rec.Support_worker2.zc_display_value || "No Worker";
+
+            // 🔑 MUST be dropdown VALUE
+            workerValue =
+              rec.Support_worker2.value || "";
           }
+          else if (typeof rec.Support_worker2 === "string") {
+            workerName = rec.Support_worker2;
+            workerValue = rec.Support_worker2;
+          }
+        }
 
-          return {
-            id: rec.ID,
+        // Calculate end time as 1 hour after start for proper rendering
+        const startDateTime = rec.Start_Date_and_Time
+          ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
+          : null;
 
-            title: `${participantName} - ${workerName}`,
+        let endDateTime = null;
+        if (startDateTime) {
+          // Add 1 hour to start time for display purposes
+          const startDate = new Date(startDateTime);
+          const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
+          endDateTime = endDate.toISOString().slice(0, 19);
+        }
 
-            start: startDateTime,
-            end: endDateTime, // Set to 1 hour after start for proper rendering
-            backgroundColor: "#007bff",
-            borderColor: "#007bff",
-            extendedProps: {
-              participantID,
-              workerValue,
-              rawStart: rec.Start_Date_and_Time,
-              rawEnd: rec.End_Date_and_Time,
-              status: rec.Status || "",
-              crmLink: rec.CRM_Link_URL.url || "",
-              Booking_Type: rec.Recurring1 || ""
-            },
-          };
-        });
+        return {
+          id: rec.ID,
 
-      calendar.removeAllEvents();
-      calendar.addEventSource(events);
-    });
-  }
+          title: `${participantName} - ${workerName}`,
+
+          start: startDateTime,
+          end: endDateTime, // Set to 1 hour after start for proper rendering
+          backgroundColor: "#007bff",
+          borderColor: "#007bff",
+          extendedProps: {
+            participantID,
+            workerValue,
+            rawStart: rec.Start_Date_and_Time,
+            rawEnd: rec.End_Date_and_Time,
+            status: rec.Status || "",
+            crmLink: rec.CRM_Link_URL.url || "",
+            Booking_Type: rec.Recurring1 || ""
+          },
+        };
+      });
+
+    console.log(`Total events to display: ${events.length}`);
+    calendar.removeAllEvents();
+    calendar.addEventSource(events);
+  });
+}
 
   // ---------- 7️⃣ Initialize Dropdowns (Calendar Starts Empty) ----------
   setTimeout(() => {
