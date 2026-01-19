@@ -64,6 +64,16 @@ document.addEventListener("DOMContentLoaded", function () {
       return { html: arg.text };
     },
 
+    // Custom dayCellContent to align dates in month view
+    // Custom dayCellContent to align dates in top-right corner
+   // Custom dayCellContent to align dates in top-left corner
+    dayCellContent: function (arg) {
+      const dateNum = arg.date.getDate();
+      return {
+        html: `<div style="text-align: left; padding: 4px 160px;">${dateNum}</div>`
+      };
+    },
+
     // Don't display event time automatically (we'll handle it in eventContent)
     displayEventTime: false,
 
