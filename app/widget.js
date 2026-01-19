@@ -68,12 +68,20 @@ document.addEventListener("DOMContentLoaded", function () {
     // Custom dayCellContent to align dates in top-right corner
    // Custom dayCellContent to align dates in top-left corner
     dayCellContent: function (arg) {
-      const dateNum = arg.date.getDate();
-      return {
-        html: `<div style="text-align: left; padding: 4px 160px;">${dateNum}</div>`
-      };
-    },
-
+  const dateNum = arg.date.getDate();
+  
+  // Show dates only in month view, hide in week/day views
+  if (arg.view.type === 'dayGridMonth') {
+    return {
+      html: `<div style="text-align: left; padding: 4px 8px;">${dateNum}</div>`
+    };
+  }
+  
+  // Hide dates in week/day views
+  return {
+    html: ''
+  };
+},
     // Don't display event time automatically (we'll handle it in eventContent)
     displayEventTime: false,
 
