@@ -143,3 +143,231 @@ body {
 .modal-body iframe {
   scrollbar-width: thin;
 }
+
+/* ========================================
+   MONTH VIEW STYLING
+   ======================================== */
+
+/* Month view: Full day names, left-aligned, black text, no underline */
+.fc-dayGridMonth-view .fc-col-header-cell-cushion {
+  text-align: left !important;
+  padding-left: 8px !important;
+  color: #000000 !important;
+  text-decoration: none !important;
+  font-weight: 500 !important;
+}
+
+/* Month view: Date numbers left-aligned and black */
+.fc-dayGridMonth-view .fc-daygrid-day-number {
+  text-align: left !important;
+  padding-left: 8px !important;
+  color: #000000 !important;
+  text-decoration: none !important;
+}
+
+/* Remove any underlines from day headers in month view */
+.fc-dayGridMonth-view .fc-col-header-cell a {
+  text-decoration: none !important;
+}
+
+/* ========================================
+   WEEK/DAY VIEW STYLING
+   ======================================== */
+
+/* Week/Day view: Left-align date headers */
+.fc-timeGridWeek-view .fc-col-header-cell-cushion,
+.fc-timeGridDay-view .fc-col-header-cell-cushion {
+  text-align: left !important;
+  padding-left: 8px !important;
+  text-decoration: none !important;
+  justify-content: flex-start !important;
+}
+
+.fc-timeGridWeek-view .fc-col-header-cell,
+.fc-timeGridDay-view .fc-col-header-cell {
+  text-align: left !important;
+}
+
+/* Remove underlines from week/day view headers */
+.fc-timeGridWeek-view .fc-col-header-cell a,
+.fc-timeGridDay-view .fc-col-header-cell a {
+  text-decoration: none !important;
+}
+
+
+/* ========================================
+   TIME AXIS STYLING
+   ======================================== */
+
+/* Time labels: Format as "number AM/PM" in uppercase */
+.fc-timegrid-slot-label-cushion {
+  text-transform: uppercase !important;
+}
+
+/* Ensure proper spacing in time labels */
+.fc-timegrid-slot-label {
+  vertical-align: middle !important;
+}
+
+/* ========================================
+   EVENT DISPLAY OPTIMIZATION
+   ======================================== */
+
+/* Increase time slot height in week/day view for more space */
+.fc-timegrid-slot {
+  height: 60px !important;
+}
+
+/* Ensure all events have consistent styling - white text on blue background */
+.fc-event,
+.fc-event-main {
+  background-color: #007bff !important;
+  border-color: #0056b3 !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hover effect for events */
+.fc-event:hover {
+  background-color: #0056b3 !important;
+  box-shadow: 0 3px 8px rgba(0, 123, 255, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+/* Event title styling */
+.fc-event-title {
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  word-break: break-word !important;
+}
+
+/* Event time styling */
+.fc-event-time {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin-bottom: 3px !important;
+  opacity: 0.95 !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Ensure events have minimum height for readability */
+.fc-timegrid-event {
+  min-height: 40px !important;
+  border-width: 1px !important;
+}
+
+/* Style the "+more" link in month view */
+.fc-daygrid-more-link {
+  font-size: 11px !important;
+  color: #007bff !important;
+  font-weight: 600 !important;
+  margin-top: 2px !important;
+}
+
+/* Improve event spacing in week/day view */
+.fc-timegrid-event-harness {
+  margin-right: 3px !important;
+}
+
+/* Better text display for stacked events */
+.fc-event-main {
+  padding: 5px 6px !important;
+  height: 100% !important;
+}
+
+/* Ensure month view events also have consistent styling */
+.fc-daygrid-event {
+  background-color: #007bff !important;
+  border-color: #0056b3 !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  padding: 3px 6px !important;
+}
+
+.fc-daygrid-event:hover {
+  background-color: #0056b3 !important;
+}
+
+.fc-daygrid-event-dot {
+  border-color: #007bff !important;
+}
+
+/* Make all events show pointer cursor on hover */
+.fc-event,
+.fc-daygrid-event,
+.fc-timegrid-event {
+  cursor: pointer !important;
+}
+
+.fc-event-main {
+  cursor: pointer !important;
+}
+
+/* Improve event main frame layout */
+.fc-event-main-frame {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  padding: 6px 8px !important;
+}
+
+/* Better text wrapping for event titles */
+.fc-event-title-container {
+  flex: 1 !important;
+  overflow: hidden !important;
+}
+
+/* Limit event width in day/week views for better multi-event display */
+.fc-timegrid-event {
+  max-width: 180px !important;
+  min-width: 150px !important;
+  width: auto !important;
+}
+
+/* Add spacing between multiple events in same slot */
+.fc-timegrid-event-harness-inset {
+  margin-right: 6px !important;
+}
+
+/* Ensure events don't stretch to full width */
+.fc-timegrid-event .fc-event-main {
+  width: 100% !important;
+  max-width: 180px !important;
+}
+
+/* Improve spacing between event columns */
+.fc-timegrid-col-events {
+  margin: 0 2px !important;
+}
+
+/* Month view - ensure day names are left-aligned */
+.fc-col-header-cell {
+  text-align: left !important;
+}
+
+.fc-col-header-cell-cushion {
+  justify-content: flex-start !important;
+  padding-left: 8px !important;
+}
+
+/* Month view - ensure dates are left-aligned */
+.fc-daygrid-day-top {
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+.fc-daygrid-day-number {
+  padding: 4px 8px !important;
+  text-align: left !important;
+}

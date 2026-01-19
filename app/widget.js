@@ -18,6 +18,91 @@ document.addEventListener("DOMContentLoaded", function () {
     showNonCurrentDates: false,
     fixedWeekCount: false,
 
+    // Format day headers in month view (full day names)
+    dayHeaderFormat: { weekday: 'long' },
+
+    // Prevent overcrowding in month view - show "+X more" link
+    dayMaxEvents: 3,
+    moreLinkClick: 'popover',
+
+    // Format day headers in week/day view (custom formatting via CSS)
+    views: {
+      timeGridWeek: {
+        dayHeaderFormat: { weekday: 'long', month: 'numeric', day: 'numeric' }
+      },
+      timeGridDay: {
+        dayHeaderFormat: { weekday: 'long', month: 'long', day: 'numeric' }
+      }
+    },
+
+    // Format time slots (e.g., "1 AM", "2 PM")
+    slotLabelFormat: {
+      hour: 'numeric',
+      minute: '2-digit',
+      omitZeroMinute: true,
+      meridiem: 'short',
+      hour12: true
+    },
+
+    // Hide all-day section in week/day views
+    allDaySlot: false,
+
+    // Custom day header content for Week/Day views
+    dayHeaderContent: function (arg) {
+      if (arg.view.type === 'timeGridWeek' || arg.view.type === 'timeGridDay') {
+        const date = arg.date;
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        const dateNum = date.getDate();
+
+        return {
+          html: `<div style="display: flex; flex-direction: column; align-items: flex-start; text-decoration: none;">
+                   <div style="font-weight: bold; color: #000000;">${dateNum}</div>
+                   <div style="font-weight: normal; color: #000000;">${dayName}</div>
+                 </div>`
+        };
+      }
+      return { html: arg.text };
+    },
+
+    // Custom dayCellContent to align dates in month view
+    // Custom dayCellContent to align dates in top-right corner
+   // Custom dayCellContent to align dates in top-left corner
+    dayCellContent: function (arg) {
+      const dateNum = arg.date.getDate();
+      return {
+        html: `<div style="text-align: left; padding: 4px 160px;">${dateNum}</div>`
+      };
+    },
+
+    // Don't display event time automatically (we'll handle it in eventContent)
+    displayEventTime: false,
+
+    // Custom event content to control time display
+    eventContent: function (arg) {
+      const viewType = arg.view.type;
+      const event = arg.event;
+
+      // Format start time (e.g., "2:30 PM")
+      let timeStr = '';
+      if (event.start && (viewType === 'timeGridWeek' || viewType === 'timeGridDay')) {
+        const hours = event.start.getHours();
+        const minutes = event.start.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12;
+        const displayMinutes = minutes < 10 ? '0' + minutes : minutes;
+        timeStr = `${displayHours}:${displayMinutes} ${ampm}`;
+      }
+
+      return {
+        html: `<div class="fc-event-main-frame" style="padding: 5px 6px; height: 100%;">
+                 ${timeStr ? `<div class="fc-event-time" style="font-size: 10px; font-weight: 700; margin-bottom: 3px; opacity: 0.95;">${timeStr}</div>` : ''}
+                 <div class="fc-event-title-container">
+                   <div class="fc-event-title fc-sticky" style="font-size: 12px; line-height: 1.3; font-weight: 500;">${event.title || 'Untitled'}</div>
+                 </div>
+               </div>`
+      };
+    },
+
     dateClick: function () {
       openBlankForm();
     },
@@ -206,10 +291,9 @@ document.addEventListener("DOMContentLoaded", function () {
     ZOHO.CREATOR.DATA.getRecords(config).then(function (response) {
       const recordArr = response.data || [];
 
-      function formatDateForCalendar(dateStr) {
-        if (!dateStr) return null;
-
-        dateStr = dateStr.split(" ")[0];
+      // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
+      function formatDateTimeForCalendar(dateTimeStr) {
+        if (!dateTimeStr) return null;
 
         const months = {
           Jan: "01", Feb: "02", Mar: "03", Apr: "04",
@@ -217,11 +301,29 @@ document.addEventListener("DOMContentLoaded", function () {
           Sep: "09", Oct: "10", Nov: "11", Dec: "12",
         };
 
-        const parts = dateStr.split("-");
-        if (parts.length !== 3) return null;
+        // Split date and time parts
+        const parts = dateTimeStr.trim().split(" ");
+        if (parts.length < 2) return null;
 
-        const [day, mon, year] = parts;
-        return `${year}-${months[mon]}-${day.padStart(2, "0")}`;
+        const datePart = parts[0];
+        const timePart = parts[1];
+
+        // Parse date (e.g., "16-Jan-2026")
+        const dateParts = datePart.split("-");
+        if (dateParts.length !== 3) return null;
+
+        const [day, mon, year] = dateParts;
+        const monthNum = months[mon];
+        if (!monthNum) return null;
+
+        // Parse time (e.g., "14:30:00")
+        const timeParts = timePart.split(":");
+        if (timeParts.length < 2) return null;
+
+        const [hour, minute] = timeParts;
+
+        // Return ISO 8601 format for FullCalendar
+        return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
       }
 
       const events = recordArr
@@ -278,14 +380,26 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           }
 
+          // Calculate end time as 1 hour after start for proper rendering
+          const startDateTime = rec.Start_Date_and_Time
+            ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
+            : null;
+
+          let endDateTime = null;
+          if (startDateTime) {
+            // Add 1 hour to start time for display purposes
+            const startDate = new Date(startDateTime);
+            const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
+            endDateTime = endDate.toISOString().slice(0, 19);
+          }
+
           return {
             id: rec.ID,
 
             title: `${participantName} - ${workerName}`,
 
-            start: rec.Start_Date_and_Time
-              ? formatDateForCalendar(rec.Start_Date_and_Time)
-              : null,
+            start: startDateTime,
+            end: endDateTime, // Set to 1 hour after start for proper rendering
             backgroundColor: "#007bff",
             borderColor: "#007bff",
             extendedProps: {
