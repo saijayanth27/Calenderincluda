@@ -3,6 +3,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // Helper function to add delay between API calls
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+  // Global variable to store all bookings for client-side filtering
+  let allBookingsCache = [];
+  let bookingsLoaded = false;
+
   // ---------- 1️⃣ Setup Calendar ----------
   const calendarEl = document.getElementById("calendar");
 
@@ -64,24 +68,8 @@ document.addEventListener("DOMContentLoaded", function () {
       return { html: arg.text };
     },
 
-    // Custom dayCellContent to align dates in month view
-    // Custom dayCellContent to align dates in top-right corner
-   // Custom dayCellContent to align dates in top-left corner
-    dayCellContent: function (arg) {
-  const dateNum = arg.date.getDate();
-  
-  // Show dates only in month view, hide in week/day views
-  if (arg.view.type === 'dayGridMonth') {
-    return {
-      html: `<div style="text-align: left; padding: 4px 120px;">${dateNum}</div>`
-    };
-  }
-  
-  // Hide dates in week/day views
-  return {
-    html: ''
-  };
-},
+    // Let FullCalendar render dates normally - CSS will handle alignment
+    // dayCellContent removed to allow CSS control
     // Don't display event time automatically (we'll handle it in eventContent)
     displayEventTime: false,
 
@@ -111,8 +99,29 @@ document.addEventListener("DOMContentLoaded", function () {
       };
     },
 
-    dateClick: function () {
-      openBlankForm();
+    dateClick: function (info) {
+      // Get currently selected participant from dropdown
+      const participantSearchInput = document.getElementById("participantSearch");
+      const selectedParticipantName = participantSearchInput ? participantSearchInput.value.trim() : "";
+
+      // Get participant ID from dropdown
+      const participantDropdown = document.getElementById("participantFilter");
+      const selectedParticipantID = participantDropdown ? participantDropdown.value : "";
+
+      // Get currently selected support worker from dropdown
+      const workerSearchInput = document.getElementById("workerSearch");
+      const selectedWorkerName = workerSearchInput ? workerSearchInput.value.trim() : "";
+
+      // Get worker value from dropdown
+      const workerDropdown = document.getElementById("workerFilter");
+      const selectedWorkerValue = workerDropdown ? workerDropdown.value : "";
+
+      // Open form with pre-filled data if participant or worker is selected
+      if ((selectedParticipantID && selectedParticipantName) || (selectedWorkerValue && selectedWorkerName)) {
+        openFormWithPrefilledData(selectedParticipantID, selectedWorkerValue, info.dateStr);
+      } else {
+        openBlankForm();
+      }
     },
 
     eventClick: function (info) {
@@ -289,13 +298,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // ---------- 3️⃣ Load Bookings ----------
-  // ---------- 3️⃣ Load Bookings (WITH PAGINATION) ----------
-function loadBookings(filterParticipantID = "", filterWorkerID = "") {
-  
-  async function fetchAllBookings() {
+  // ---------- 3️⃣ Load All Bookings to Cache (On Page Load) ----------
+  async function loadAllBookingsToCache() {
     try {
-      console.log("Starting to load bookings...");
+      console.log("Loading all bookings to cache on page load...");
       let allBookings = [];
       const maxRecords = 200;
       let hasMoreRecords = true;
@@ -323,73 +329,79 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
 
         const response = await ZOHO.CREATOR.DATA.getRecords(params);
 
-        console.log(`Response:`, response);
-
         const bookingList = response.data || [];
         console.log(`Received ${bookingList.length} bookings`);
 
-        // Log first booking ID to verify we're getting different records
         if (bookingList.length > 0) {
-          console.log(`First booking ID in this batch: ${bookingList[0].ID}`);
           allBookings = allBookings.concat(bookingList);
         }
 
         // Check if there's a record_cursor for the next page
         if (response.record_cursor && bookingList.length === maxRecords) {
           recordCursor = response.record_cursor;
-          console.log(`Has more records, cursor: ${recordCursor.substring(0, 20)}...`);
         } else {
           hasMoreRecords = false;
-          console.log(`Finished loading bookings - total: ${allBookings.length}`);
+          console.log(`Finished loading all bookings - total: ${allBookings.length}`);
         }
       }
 
-      return allBookings;
+      // Store in global cache
+      allBookingsCache = allBookings;
+      bookingsLoaded = true;
+
+
+      console.log("All bookings loaded to cache. Calendar remains empty until Search is clicked.");
+
     } catch (e) {
-      console.error("Error loading bookings:", e);
-      return [];
+      console.error("Error loading bookings to cache:", e);
     }
   }
 
-  // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
-  function formatDateTimeForCalendar(dateTimeStr) {
-    if (!dateTimeStr) return null;
+  // ---------- 3️⃣.5 Load Bookings (Filter from Cache) ----------
+  function loadBookings(filterParticipantID = "", filterWorkerID = "") {
 
-    const months = {
-      Jan: "01", Feb: "02", Mar: "03", Apr: "04",
-      May: "05", Jun: "06", Jul: "07", Aug: "08",
-      Sep: "09", Oct: "10", Nov: "11", Dec: "12",
-    };
+    // Use cached bookings instead of fetching
+    const recordArr = allBookingsCache;
 
-    // Split date and time parts
-    const parts = dateTimeStr.trim().split(" ");
-    if (parts.length < 2) return null;
+    // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
+    function formatDateTimeForCalendar(dateTimeStr) {
+      if (!dateTimeStr) return null;
 
-    const datePart = parts[0];
-    const timePart = parts[1];
+      const months = {
+        Jan: "01", Feb: "02", Mar: "03", Apr: "04",
+        May: "05", Jun: "06", Jul: "07", Aug: "08",
+        Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+      };
 
-    // Parse date (e.g., "16-Jan-2026")
-    const dateParts = datePart.split("-");
-    if (dateParts.length !== 3) return null;
+      // Split date and time parts
+      const parts = dateTimeStr.trim().split(" ");
+      if (parts.length < 2) return null;
 
-    const [day, mon, year] = dateParts;
-    const monthNum = months[mon];
-    if (!monthNum) return null;
+      const datePart = parts[0];
+      const timePart = parts[1];
 
-    // Parse time (e.g., "14:30:00")
-    const timeParts = timePart.split(":");
-    if (timeParts.length < 2) return null;
+      // Parse date (e.g., "16-Jan-2026")
+      const dateParts = datePart.split("-");
+      if (dateParts.length !== 3) return null;
 
-    const [hour, minute] = timeParts;
+      const [day, mon, year] = dateParts;
+      const monthNum = months[mon];
+      if (!monthNum) return null;
 
-    // Return ISO 8601 format for FullCalendar
-    return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
-  }
+      // Parse time (e.g., "14:30:00")
+      const timeParts = timePart.split(":");
+      if (timeParts.length < 2) return null;
 
-  // Fetch all bookings (with pagination) then filter and display
-  fetchAllBookings().then(function (recordArr) {
+      const [hour, minute] = timeParts;
+
+      // Return ISO 8601 format for FullCalendar
+      return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
+    }
+
+    // Filter and map bookings
     const events = recordArr
       .filter(rec => {
+
         // Apply filters
         let matchesParticipant = true;
         let matchesWorker = true;
@@ -442,18 +454,14 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
           }
         }
 
-        // Calculate end time as 1 hour after start for proper rendering
+        // Use actual end time from booking record
         const startDateTime = rec.Start_Date_and_Time
           ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
           : null;
 
-        let endDateTime = null;
-        if (startDateTime) {
-          // Add 1 hour to start time for display purposes
-          const startDate = new Date(startDateTime);
-          const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // Add 1 hour
-          endDateTime = endDate.toISOString().slice(0, 19);
-        }
+        const endDateTime = rec.End_Date_and_Time
+          ? formatDateTimeForCalendar(rec.End_Date_and_Time)
+          : null;
 
         return {
           id: rec.ID,
@@ -461,7 +469,7 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
           title: `${participantName} - ${workerName}`,
 
           start: startDateTime,
-          end: endDateTime, // Set to 1 hour after start for proper rendering
+          end: endDateTime, // Actual booking end time
           backgroundColor: "#007bff",
           borderColor: "#007bff",
           extendedProps: {
@@ -479,14 +487,13 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
     console.log(`Total events to display: ${events.length}`);
     calendar.removeAllEvents();
     calendar.addEventSource(events);
-  });
-}
+  }
 
-  // ---------- 7️⃣ Initialize Dropdowns (Calendar Starts Empty) ----------
-  setTimeout(() => {
-    loadParticipants();
-    loadSupportWorkers();
-    // Don't load bookings automatically - calendar starts empty
+  // ---------- 7️⃣ Initialize Dropdowns and Load All Bookings ----------
+  setTimeout(async () => {
+    await loadParticipants();
+    await loadSupportWorkers();
+    await loadAllBookingsToCache(); // Load all bookings on page load
   }, 200);
 
   // ---------- 8️⃣ Submit Filters Button ----------
@@ -677,6 +684,42 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
     }
   });
 
+  // ---------- 4️⃣.5 Open Form with Pre-filled Data ----------
+  function openFormWithPrefilledData(participantID, workerValue, clickedDate) {
+    const iframe = document.getElementById("crmFormFrame");
+
+    // Format clicked date to "DD-Mon-YYYY 00:00:00" format (e.g., "20-Jan-2026 00:00:00")
+    const date = new Date(clickedDate);
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    const formattedStartDate = `${day}-${month}-${year} 00:00:00`;
+
+    // Build URL with pre-filled fields
+    let url = "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M" +
+      "?embed=true&hide_header=true&formAutoResize=true";
+
+    // Add participant if selected
+    if (participantID) {
+      url += "&Participant=" + encodeURIComponent(participantID);
+    }
+
+    // Add support worker if selected
+    if (workerValue) {
+      url += "&Support_worker2=" + encodeURIComponent(workerValue);
+    }
+
+    // Add start date and time
+    url += "&Start_Date_and_Time=" + encodeURIComponent(formattedStartDate);
+
+    iframe.src = url;
+
+    new bootstrap.Modal(
+      document.getElementById("creatorFormModal")
+    ).show();
+  }
+
   // ---------- 4️⃣ Open Blank Form ----------
   function openBlankForm() {
     const iframe = document.getElementById("crmFormFrame");
@@ -700,7 +743,7 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
     const status = event.extendedProps.status || "";
     const crmLink = event.extendedProps.crmLink || "";
     const Booking_Type = event.extendedProps.Booking_Type || ""
-    
+
 
     console.log("Prefill values:", {
       workerValue,
@@ -718,16 +761,16 @@ function loadBookings(filterParticipantID = "", filterWorkerID = "") {
       "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M";
 
     iframe.src =
-  `${baseUrl}` +
-  `?Support_worker2=${encodeURIComponent(workerValue)}` +
-  `&Participant=${encodeURIComponent(participantID)}` +
-  `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
-  `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
-  `&Status=${encodeURIComponent(status)}` +
-  `&Url.url=${encodeURIComponent(crmLink)}` +
-  `&Url.title=${encodeURIComponent("Open CRM Record")}` +
-  `&Recurring1=${encodeURIComponent(Booking_Type)}` +
-  `&embed=true&hide_header=true&formAutoResize=true`;
+      `${baseUrl}` +
+      `?Support_worker2=${encodeURIComponent(workerValue)}` +
+      `&Participant=${encodeURIComponent(participantID)}` +
+      `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
+      `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
+      `&Status=${encodeURIComponent(status)}` +
+      `&Url.url=${encodeURIComponent(crmLink)}` +
+      `&Url.title=${encodeURIComponent("Open CRM Record")}` +
+      `&Recurring1=${encodeURIComponent(Booking_Type)}` +
+      `&embed=true&hide_header=true&formAutoResize=true`;
 
     new bootstrap.Modal(
       document.getElementById("creatorFormModal")

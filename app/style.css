@@ -170,6 +170,51 @@ body {
   text-decoration: none !important;
 }
 
+/* Force date numbers to extreme left */
+.fc-daygrid-day-top {
+  justify-content: flex-start !important;
+}
+
+.fc-daygrid-day-frame {
+  text-align: left !important;
+}
+
+/* Override FullCalendar's default right alignment for dates - FORCE LEFT */
+.fc-daygrid-day-number,
+.fc-daygrid-day-top .fc-daygrid-day-number,
+a.fc-daygrid-day-number {
+  float: none !important;
+  text-align: left !important;
+  padding-left: 4px !important;
+  padding-right: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+.fc-daygrid-day-top {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+
+.fc-daygrid-day-frame {
+  text-align: left !important;
+}
+
+/* Additional override for the day cell */
+.fc-daygrid-day {
+  text-align: left !important;
+}
+
+/* Custom date cell styling */
+.custom-date-cell {
+  text-align: left !important;
+  padding: 4px !important;
+  margin: 0 !important;
+}
+
 /* ========================================
    WEEK/DAY VIEW STYLING
    ======================================== */
