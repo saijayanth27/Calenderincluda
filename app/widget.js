@@ -116,12 +116,10 @@ document.addEventListener("DOMContentLoaded", function () {
       const workerDropdown = document.getElementById("workerFilter");
       const selectedWorkerValue = workerDropdown ? workerDropdown.value : "";
 
-      // Open form with pre-filled data if participant or worker is selected
-      if ((selectedParticipantID && selectedParticipantName) || (selectedWorkerValue && selectedWorkerName)) {
-        openFormWithPrefilledData(selectedParticipantID, selectedWorkerValue, info.dateStr);
-      } else {
-        openBlankForm();
-      }
+
+      // Always open form with clicked date pre-filled
+      // Also pre-fill participant and/or worker if selected
+      openFormWithPrefilledData(selectedParticipantID, selectedWorkerValue, info.dateStr);
     },
 
     eventClick: function (info) {
