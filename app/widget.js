@@ -197,7 +197,9 @@ document.addEventListener("DOMContentLoaded", function () {
           "Unknown";
 
         const opt = document.createElement("option");
-        opt.value = name;  // Use name instead of ID for filtering
+        opt.value = w.ID;                // ✅ lookup ID
+opt.textContent = name;
+  // Use name instead of ID for filtering
         opt.textContent = name;
         workerDropdown.appendChild(opt);
       });
@@ -410,77 +412,62 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (filterWorkerID) {
-          let workerValue = "";
-          if (rec.Support_worker2) {
-            if (typeof rec.Support_worker2 === "object") {
-              workerValue = rec.Support_worker2.value || "";
-            } else if (typeof rec.Support_worker2 === "string") {
-              workerValue = rec.Support_worker2;
-            }
-          }
-          matchesWorker = workerValue === filterWorkerID;
-        }
+  const workerID = rec.Support_worker2?.ID || "";
+  matchesWorker = workerID === filterWorkerID;
+}
 
         return matchesParticipant && matchesWorker;
       })
       .map(rec => {
-        console.log("rec:" + rec);
+  console.log("rec:", rec);
 
-        // ✅ Participant (LOOKUP)
-        const participantName =
-          rec.Participant?.zc_display_value?.trim() || "No Participant";
+  // ✅ Participant (LOOKUP)
+  const participantName =
+    rec.Participant?.zc_display_value?.trim() || "No Participant";
 
-        const participantID =
-          rec.Participant?.ID || "";
+  const participantID =
+    rec.Participant?.ID || "";
 
-        // ✅ Support Worker (DROPDOWN – CORRECT)
-        let workerName = "No Worker";
-        let workerValue = "";
+  // ✅ Support Worker (LOOKUP) — MUST be declared BEFORE use
+  let workerName = "No Worker";
+  let workerID = "";
 
-        if (rec.Support_worker2) {
-          if (typeof rec.Support_worker2 === "object") {
-            workerName =
-              rec.Support_worker2.zc_display_value || "No Worker";
+  if (rec.Support_worker2) {
+    workerName =
+      rec.Support_worker2.zc_display_value || "No Worker";
 
-            // 🔑 MUST be dropdown VALUE
-            workerValue =
-              rec.Support_worker2.value || "";
-          }
-          else if (typeof rec.Support_worker2 === "string") {
-            workerName = rec.Support_worker2;
-            workerValue = rec.Support_worker2;
-          }
-        }
+    workerID =
+      rec.Support_worker2.ID || "";
+  }
 
-        // Use actual end time from booking record
-        const startDateTime = rec.Start_Date_and_Time
-          ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
-          : null;
+  // ✅ Dates
+  const startDateTime = rec.Start_Date_and_Time
+    ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
+    : null;
 
-        const endDateTime = rec.End_Date_and_Time
-          ? formatDateTimeForCalendar(rec.End_Date_and_Time)
-          : null;
+  const endDateTime = rec.End_Date_and_Time
+    ? formatDateTimeForCalendar(rec.End_Date_and_Time)
+    : null;
 
-        return {
-          id: rec.ID,
-
-          title: `${participantName} - ${workerName}`,
-
-          start: startDateTime,
-          end: endDateTime, // Actual booking end time
-          backgroundColor: "#007bff",
-          borderColor: "#007bff",
-          extendedProps: {
-            participantID,
-            workerValue,
-            rawStart: rec.Start_Date_and_Time,
-            rawEnd: rec.End_Date_and_Time,
-            status: rec.Status || "",
-            crmLink: rec.CRM_Link_URL.url || "",
-            Booking_Type: rec.Recurring1 || ""
-          },
-        };
-      });
+  // ✅ RETURN calendar event
+  return {
+    id: rec.ID,
+    title: `${participantName} - ${workerName}`,
+    start: startDateTime,
+    end: endDateTime,
+    backgroundColor: "#007bff",
+    borderColor: "#007bff",
+    extendedProps: {
+      participantID,
+      workerID, // ✅ lookup ID
+      rawStart: rec.Start_Date_and_Time,
+      rawEnd: rec.End_Date_and_Time,
+      status: rec.Status || "",
+      crmLink: rec.CRM_Link_URL?.url || "",
+      Booking_Type: rec.Recurring1 || ""
+    },
+  };
+});
 
     console.log(`Total events to display: ${events.length}`);
     calendar.removeAllEvents();
@@ -734,7 +721,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // ---------- 5️⃣ Prefill Form ----------
   function prefillForm(event) {
 
-    const workerValue = event.extendedProps.workerValue || "";
+    const workerValue = event.extendedProps.workerID || "";
     const participantID = event.extendedProps.participantID || "";
     const rawStart = event.extendedProps.rawStart || "";
     const rawEnd = event.extendedProps.rawEnd || "";
