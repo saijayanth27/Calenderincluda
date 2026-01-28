@@ -4,14 +4,60 @@ document.addEventListener("DOMContentLoaded", function () {
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   // Global variable to store all bookings for client-side filtering
-  let allBookingsCache = [];
-  let bookingsLoaded = false;
+  // allBookingsCache removed to favor server-side filtering
+
+  // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
+  function formatDateTimeForCalendar(dateTimeStr) {
+    if (!dateTimeStr) return null;
+
+    const months = {
+      Jan: "01", Feb: "02", Mar: "03", Apr: "04",
+      May: "05", Jun: "06", Jul: "07", Aug: "08",
+      Sep: "09", Oct: "10", Nov: "11", Dec: "12",
+    };
+
+    // Split date and time parts
+    const parts = dateTimeStr.trim().split(" ");
+    if (parts.length < 2) return null;
+
+    const datePart = parts[0];
+    const timePart = parts[1];
+
+    // Parse date (e.g., "16-Jan-2026")
+    const dateParts = datePart.split("-");
+    if (dateParts.length !== 3) return null;
+
+    const [day, mon, year] = dateParts;
+    const monthNum = months[mon];
+    if (!monthNum) return null;
+
+    // Parse time (e.g., "14:30:00")
+    const timeParts = timePart.split(":");
+    if (timeParts.length < 2) return null;
+
+    const [hour, minute] = timeParts;
+
+    // Return ISO 8601 format for FullCalendar
+    return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
+  }
+
+  // Global functions to show/hide loader
+  function showLoader() {
+    const loader = document.getElementById("loader");
+    if (loader) loader.classList.add("active");
+  }
+
+  function hideLoader() {
+    const loader = document.getElementById("loader");
+    if (loader) loader.classList.remove("active");
+  }
 
   // ---------- 1️⃣ Setup Calendar ----------
   const calendarEl = document.getElementById("calendar");
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: "dayGridMonth",
+    firstDay: 1,
 
     headerToolbar: {
       left: "prev,next today",
@@ -32,10 +78,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Format day headers in week/day view (custom formatting via CSS)
     views: {
       timeGridWeek: {
-        dayHeaderFormat: { weekday: 'long', month: 'numeric', day: 'numeric' }
+        dayHeaderFormat: { weekday: 'long', month: 'numeric', day: 'numeric' },
+        firstDay: 1
       },
       timeGridDay: {
-        dayHeaderFormat: { weekday: 'long', month: 'long', day: 'numeric' }
+        dayHeaderFormat: { weekday: 'long', month: 'long', day: 'numeric' },
+        firstDay: 1
       }
     },
 
@@ -133,6 +181,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ---------- 2️⃣ Load Support Workers ----------
   async function loadSupportWorkers() {
+    showLoader();
     try {
       console.log("Starting to load support workers...");
       let allWorkers = [];
@@ -169,7 +218,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Log first worker ID to verify we're getting different records
         if (workerList.length > 0) {
-          console.log(`First worker ID in this batch: ${workerList[0].ID}`);
           allWorkers = allWorkers.concat(workerList);
         }
 
@@ -198,8 +246,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const opt = document.createElement("option");
         opt.value = w.ID;                // ✅ lookup ID
-opt.textContent = name;
-  // Use name instead of ID for filtering
+        opt.textContent = name;
+        // Use name instead of ID for filtering
         opt.textContent = name;
         workerDropdown.appendChild(opt);
       });
@@ -213,6 +261,7 @@ opt.textContent = name;
 
   // ---------- 2️⃣.5 Load Participants ----------
   async function loadParticipants() {
+    showLoader();
     try {
       console.log("Starting to load participants...");
       let allParticipants = [];
@@ -249,7 +298,6 @@ opt.textContent = name;
 
         // Log first participant ID to verify we're getting different records
         if (participantList.length > 0) {
-          console.log(`First participant ID in this batch: ${participantList[0].ID}`);
           allParticipants = allParticipants.concat(participantList);
         }
 
@@ -298,20 +346,36 @@ opt.textContent = name;
     }
   }
 
-  // ---------- 3️⃣ Load All Bookings to Cache (On Page Load) ----------
-  async function loadAllBookingsToCache() {
+  // ---------- 3️⃣ Load Bookings (Fetch from Server with Criteria) ----------
+  async function loadBookings(filterParticipantID = "", filterWorkerID = "") {
+    showLoader();
     try {
-      console.log("Loading all bookings to cache on page load...");
-      let allBookings = [];
+      console.log(`Loading bookings from server for Participant: ${filterParticipantID}, Worker: ${filterWorkerID}`);
+
+      let allRecords = [];
       const maxRecords = 200;
       let hasMoreRecords = true;
       let recordCursor = null;
 
-      // Fetch all bookings using pagination with record_cursor
-      while (hasMoreRecords) {
-        console.log(`Fetching bookings batch... (cursor: ${recordCursor ? 'yes' : 'first'})`);
+      // Build criteria string
+      let criteria = "";
 
-        // Add delay to avoid rate limiting (250ms between requests)
+      // If validation in submit button set a "NONE" state, return empty immediately
+      if (filterParticipantID === "NONE" || filterWorkerID === "NONE") {
+        calendar.removeAllEvents();
+        return;
+      }
+
+      if (filterParticipantID) {
+        criteria = `Participant == ${filterParticipantID}`;
+      }
+      if (filterWorkerID) {
+        if (criteria) criteria += " && ";
+        criteria += `Support_worker2 == ${filterWorkerID}`;
+      }
+
+      // Fetch all pages of matching records
+      while (hasMoreRecords) {
         if (recordCursor) {
           await sleep(250);
         }
@@ -322,163 +386,102 @@ opt.textContent = name;
           max_records: maxRecords
         };
 
-        // Add record_cursor if we have one (for subsequent pages)
+        if (criteria) {
+          params.criteria = criteria;
+        }
+
         if (recordCursor) {
           params.record_cursor = recordCursor;
         }
 
         const response = await ZOHO.CREATOR.DATA.getRecords(params);
-
         const bookingList = response.data || [];
-        console.log(`Received ${bookingList.length} bookings`);
 
         if (bookingList.length > 0) {
-          allBookings = allBookings.concat(bookingList);
+          allRecords = allRecords.concat(bookingList);
         }
 
-        // Check if there's a record_cursor for the next page
         if (response.record_cursor && bookingList.length === maxRecords) {
           recordCursor = response.record_cursor;
         } else {
           hasMoreRecords = false;
-          console.log(`Finished loading all bookings - total: ${allBookings.length}`);
         }
       }
 
-      // Store in global cache
-      allBookingsCache = allBookings;
-      bookingsLoaded = true;
+      console.log(`Total records fetched from Zoho Creator: ${allRecords.length}`);
+
+      // Map bookings to FullCalendar events
 
 
-      console.log("All bookings loaded to cache. Calendar remains empty until Search is clicked.");
+      // Map and add events
+      const events = allRecords
+        .map(rec => {
+
+          // ✅ Participant (LOOKUP)
+          const participantName =
+            rec.Participant?.zc_display_value?.trim() || "No Participant";
+
+          const participantID =
+            rec.Participant?.ID || "";
+
+          // ✅ Support Worker (LOOKUP) — MUST be declared BEFORE use
+          let workerName = "No Worker";
+          let workerID = "";
+
+          if (rec.Support_worker2) {
+            workerName =
+              rec.Support_worker2.zc_display_value || "No Worker";
+
+            workerID =
+              rec.Support_worker2.ID || "";
+          }
+
+          // ✅ Dates
+          const startDateTime = rec.Start_Date_and_Time
+            ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
+            : null;
+
+          const endDateTime = rec.End_Date_and_Time
+            ? formatDateTimeForCalendar(rec.End_Date_and_Time)
+            : null;
+
+          // ✅ RETURN calendar event
+          return {
+            id: rec.ID,
+            title: `${participantName} - ${workerName}`,
+            start: startDateTime,
+            end: endDateTime,
+            backgroundColor: "#007bff",
+            borderColor: "#007bff",
+            extendedProps: {
+              participantID,
+              workerID, // ✅ lookup ID
+              rawStart: rec.Start_Date_and_Time,
+              rawEnd: rec.End_Date_and_Time,
+              status: rec.Status || "",
+              crmLink: rec.CRM_Link_URL?.url || "",
+              Booking_Type: rec.Recurring1 || ""
+            },
+          };
+        });
+
+      calendar.removeAllEvents();
+      calendar.addEventSource(events);
+      console.log(`Calendar updated with ${events.length} events from server search.`);
 
     } catch (e) {
-      console.error("Error loading bookings to cache:", e);
+      console.error("Error loading bookings:", e);
+      calendar.removeAllEvents();
+    } finally {
+      hideLoader();
     }
   }
 
-  // ---------- 3️⃣.5 Load Bookings (Filter from Cache) ----------
-  function loadBookings(filterParticipantID = "", filterWorkerID = "") {
-
-    // Use cached bookings instead of fetching
-    const recordArr = allBookingsCache;
-
-    // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
-    function formatDateTimeForCalendar(dateTimeStr) {
-      if (!dateTimeStr) return null;
-
-      const months = {
-        Jan: "01", Feb: "02", Mar: "03", Apr: "04",
-        May: "05", Jun: "06", Jul: "07", Aug: "08",
-        Sep: "09", Oct: "10", Nov: "11", Dec: "12",
-      };
-
-      // Split date and time parts
-      const parts = dateTimeStr.trim().split(" ");
-      if (parts.length < 2) return null;
-
-      const datePart = parts[0];
-      const timePart = parts[1];
-
-      // Parse date (e.g., "16-Jan-2026")
-      const dateParts = datePart.split("-");
-      if (dateParts.length !== 3) return null;
-
-      const [day, mon, year] = dateParts;
-      const monthNum = months[mon];
-      if (!monthNum) return null;
-
-      // Parse time (e.g., "14:30:00")
-      const timeParts = timePart.split(":");
-      if (timeParts.length < 2) return null;
-
-      const [hour, minute] = timeParts;
-
-      // Return ISO 8601 format for FullCalendar
-      return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
-    }
-
-    // Filter and map bookings
-    const events = recordArr
-      .filter(rec => {
-
-        // Apply filters
-        let matchesParticipant = true;
-        let matchesWorker = true;
-
-        if (filterParticipantID) {
-          const participantID = rec.Participant?.ID || "";
-          matchesParticipant = participantID === filterParticipantID;
-        }
-
-        if (filterWorkerID) {
-  const workerID = rec.Support_worker2?.ID || "";
-  matchesWorker = workerID === filterWorkerID;
-}
-
-        return matchesParticipant && matchesWorker;
-      })
-      .map(rec => {
-  console.log("rec:", rec);
-
-  // ✅ Participant (LOOKUP)
-  const participantName =
-    rec.Participant?.zc_display_value?.trim() || "No Participant";
-
-  const participantID =
-    rec.Participant?.ID || "";
-
-  // ✅ Support Worker (LOOKUP) — MUST be declared BEFORE use
-  let workerName = "No Worker";
-  let workerID = "";
-
-  if (rec.Support_worker2) {
-    workerName =
-      rec.Support_worker2.zc_display_value || "No Worker";
-
-    workerID =
-      rec.Support_worker2.ID || "";
-  }
-
-  // ✅ Dates
-  const startDateTime = rec.Start_Date_and_Time
-    ? formatDateTimeForCalendar(rec.Start_Date_and_Time)
-    : null;
-
-  const endDateTime = rec.End_Date_and_Time
-    ? formatDateTimeForCalendar(rec.End_Date_and_Time)
-    : null;
-
-  // ✅ RETURN calendar event
-  return {
-    id: rec.ID,
-    title: `${participantName} - ${workerName}`,
-    start: startDateTime,
-    end: endDateTime,
-    backgroundColor: "#007bff",
-    borderColor: "#007bff",
-    extendedProps: {
-      participantID,
-      workerID, // ✅ lookup ID
-      rawStart: rec.Start_Date_and_Time,
-      rawEnd: rec.End_Date_and_Time,
-      status: rec.Status || "",
-      crmLink: rec.CRM_Link_URL?.url || "",
-      Booking_Type: rec.Recurring1 || ""
-    },
-  };
-});
-
-    console.log(`Total events to display: ${events.length}`);
-    calendar.removeAllEvents();
-    calendar.addEventSource(events);
-  }
-
-  // ---------- 7️⃣ Initialize Dropdowns and Load All Bookings ----------
+  // ---------- 7️⃣ Initialize Dropdowns ----------
   setTimeout(async () => {
     await loadParticipants();
     await loadSupportWorkers();
-    await loadAllBookingsToCache(); // Load all bookings on page load
+    hideLoader(); // Hide loader after dropdowns are populated
   }, 200);
 
   // ---------- 8️⃣ Submit Filters Button ----------
@@ -488,18 +491,31 @@ opt.textContent = name;
     const participantSearchInput = document.getElementById("participantSearch");
     const workerSearchInput = document.getElementById("workerSearch");
 
-    // Check if user has made a selection (either specific or "All")
-    const participantSelected = participantSearchInput.value.trim() !== "";
-    const workerSelected = workerSearchInput.value.trim() !== "";
+    const pSearchText = participantSearchInput.value.trim();
+    const wSearchText = workerSearchInput.value.trim();
 
-    // Only search if at least one filter has been explicitly selected
-    if (!participantSelected && !workerSelected) {
+    // Only search if at least one filter has been explicitly entered or selected
+    if (pSearchText === "" && wSearchText === "") {
       alert("Please select at least one filter option (you can select 'All Participants' or 'All Workers' to see all bookings)");
       return;
     }
 
-    const participantID = participantDropdown.value;
-    const workerID = workerDropdown.value;
+    let participantID = participantDropdown.value;
+    let workerID = workerDropdown.value;
+
+    // VALIDATION: If user typed something but it doesn't match the selected option's text, 
+    // it means it's a non-existent name they've typed manually.
+    const selectedParticipantText = participantDropdown.options[participantDropdown.selectedIndex]?.textContent || "";
+    if (pSearchText !== "" && pSearchText !== selectedParticipantText) {
+      participantID = "NONE"; // Ensure no matches found
+      alert(`No participant found for: "${pSearchText}"`);
+    }
+
+    const selectedWorkerText = workerDropdown.options[workerDropdown.selectedIndex]?.textContent || "";
+    if (wSearchText !== "" && wSearchText !== selectedWorkerText) {
+      workerID = "NONE"; // Ensure no matches found
+      alert(`No support worker found for: "${wSearchText}"`);
+    }
 
     // Load bookings with selected filters
     loadBookings(participantID, workerID);
