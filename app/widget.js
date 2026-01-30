@@ -126,22 +126,46 @@ document.addEventListener("DOMContentLoaded", function () {
       const viewType = arg.view.type;
       const event = arg.event;
 
-      // Format start time (e.g., "2:30 PM")
-      let timeStr = '';
-      if (event.start && (viewType === 'timeGridWeek' || viewType === 'timeGridDay')) {
-        const hours = event.start.getHours();
-        const minutes = event.start.getMinutes();
+      // Helper for formatting time (e.g., "2:30 PM")
+      const formatTime = (date) => {
+        if (!date) return "";
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
         const ampm = hours >= 12 ? 'PM' : 'AM';
         const displayHours = hours % 12 || 12;
         const displayMinutes = minutes < 10 ? '0' + minutes : minutes;
-        timeStr = `${displayHours}:${displayMinutes} ${ampm}`;
+        return `${displayHours}:${displayMinutes} ${ampm}`;
+      };
+
+      // Format start time for week/day views
+      let timeStr = '';
+      if (viewType === 'timeGridWeek' || viewType === 'timeGridDay') {
+        timeStr = formatTime(event.start);
+      }
+
+      // Format start and end times for month view
+      let dateRangeStr = '';
+      if (viewType === 'dayGridMonth') {
+        const startTime = formatTime(event.start);
+        const endTime = formatTime(event.end);
+
+        if (startTime && endTime) {
+          dateRangeStr = `<div class="fc-event-times" style="font-size: 9px; font-weight: 700; margin-bottom: 2px; opacity: 0.95;">
+                            ${startTime} - ${endTime}
+                          </div>`;
+        } else if (startTime) {
+          dateRangeStr = `<div class="fc-event-times" style="font-size: 9px; font-weight: 700; margin-bottom: 2px; opacity: 0.95;">
+                            ${startTime}
+                          </div>`;
+        }
       }
 
       return {
-        html: `<div class="fc-event-main-frame" style="padding: 5px 6px; height: 100%;">
-                 ${timeStr ? `<div class="fc-event-time" style="font-size: 10px; font-weight: 700; margin-bottom: 3px; opacity: 0.95;">${timeStr}</div>` : ''}
+        html: `<div class="fc-event-main-frame" style="padding: 2px 4px; height: 100%; white-space: normal; overflow: visible;">
+                 ${dateRangeStr}
+                 ${timeStr ? `<div class="fc-event-time" style="font-size: 10px; font-weight: 700; margin-bottom: 2px; opacity: 0.95;">${timeStr}</div>` : ''}
                  <div class="fc-event-title-container">
-                   <div class="fc-event-title fc-sticky" style="font-size: 12px; line-height: 1.3; font-weight: 500;">${event.title || 'Untitled'}</div>
+                   <div class="fc-event-title" style="font-size: 11px; line-height: 1.2; font-weight: 500;">${event.title || 'Untitled'}</div>
                  </div>
                </div>`
       };
