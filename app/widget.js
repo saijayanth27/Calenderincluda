@@ -6,8 +6,30 @@ document.addEventListener("DOMContentLoaded", function () {
   // Global variable to store all bookings for client-side filtering
   // allBookingsCache removed to favor server-side filtering
   let allSupportWorkersCache = [];
+  let allParticipantsCache = [];
 
-  // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
+  // Helper function to render a dropdown from cached data
+  function renderDropdown(elementId, items, defaultOptionText) {
+    const dropdown = document.getElementById(elementId);
+    if (!dropdown) return;
+
+    dropdown.innerHTML = `<option value="">${defaultOptionText}</option>`;
+    items.forEach(item => {
+      const name = item.Participant_Name?.zc_display_value || 
+                   item.Participant_Name?.first_name || 
+                   item.Name?.first_name || 
+                   item.Name?.zc_display_value || 
+                   item.First_Name || 
+                   item.name || 
+                   "Unknown";
+      const id = item.ID;
+
+      const opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = name;
+      dropdown.appendChild(opt);
+    });
+  }
 
   function formatDateTimeForCalendar(dateTimeStr) {
     if (!dateTimeStr) return null;
@@ -367,21 +389,8 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log(`Total support workers loaded: ${allWorkers.length}`);
       allSupportWorkersCache = allWorkers; // Cache for lookup
 
-      const workerDropdown = document.getElementById("workerFilter");
-
-      if (workerDropdown) workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
-
-      allWorkers.forEach(w => {
-        const name = w.Name?.zc_display_value || w.Name?.first_name || "Unknown";
-        const id = w.ID;
-
-        if (workerDropdown) {
-          const opt = document.createElement("option");
-          opt.value = id;
-          opt.textContent = name;
-          workerDropdown.appendChild(opt);
-        }
-      });
+      // Render the dropdown using the newly cached data
+      renderDropdown("workerFilter", allSupportWorkersCache, "— All Workers —");
 
       console.log("Support workers dropdown populated successfully");
 
@@ -443,22 +452,10 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       console.log(`Total participants loaded: ${allParticipants.length}`);
+      allParticipantsCache = allParticipants; // Save to global cache
 
-      const participantDropdown = document.getElementById("participantFilter");
-
-      if (participantDropdown) participantDropdown.innerHTML = `<option value="">— All Participants —</option>`;
-
-      allParticipants.forEach(p => {
-        const name = p.Participant_Name?.zc_display_value || p.Participant_Name?.first_name || p.Name?.first_name || p.Name?.zc_display_value || p.First_Name || p.name || "Unknown";
-        const id = p.ID;
-
-        if (participantDropdown) {
-          const opt = document.createElement("option");
-          opt.value = id;
-          opt.textContent = name;
-          participantDropdown.appendChild(opt);
-        }
-      });
+      // Render the dropdown using the newly cached data
+      renderDropdown("participantFilter", allParticipantsCache, "— All Participants —");
 
       console.log("Participants dropdown populated successfully");
 
@@ -650,23 +647,12 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("participantSearch").value = "";
     document.getElementById("workerSearch").value = "";
 
-    // Show all participant options
-    const participantDropdown = document.getElementById("participantFilter");
-    Array.from(participantDropdown.options).forEach(opt => {
-      opt.style.display = "";
-    });
-
-    // Show all worker options
-    const workerDropdown = document.getElementById("workerFilter");
-    Array.from(workerDropdown.options).forEach(opt => {
-      opt.style.display = "";
-    });
+    // Show all options by restoring from cache (very fast!)
+    renderDropdown("participantFilter", allParticipantsCache, "— All Participants —");
+    renderDropdown("workerFilter", allSupportWorkersCache, "— All Workers —");
 
     // Clear calendar
     calendar.removeAllEvents();
-
-    // Reload all support workers to restore the full list
-    loadSupportWorkers();
   });
 
   // ---------- 🔟 Searchable Dropdown Functionality ----------
