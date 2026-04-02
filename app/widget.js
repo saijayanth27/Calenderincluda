@@ -5,8 +5,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Global variable to store all bookings for client-side filtering
   // allBookingsCache removed to favor server-side filtering
+  let allSupportWorkersCache = [];
 
   // Parse full datetime from Zoho format (e.g., "16-Jan-2026 14:30:00")
+
   function formatDateTimeForCalendar(dateTimeStr) {
     if (!dateTimeStr) return null;
 
@@ -16,14 +18,12 @@ document.addEventListener("DOMContentLoaded", function () {
       Sep: "09", Oct: "10", Nov: "11", Dec: "12",
     };
 
-    // Split date and time parts
     const parts = dateTimeStr.trim().split(" ");
     if (parts.length < 2) return null;
 
     const datePart = parts[0];
     const timePart = parts[1];
 
-    // Parse date (e.g., "16-Jan-2026")
     const dateParts = datePart.split("-");
     if (dateParts.length !== 3) return null;
 
@@ -31,14 +31,37 @@ document.addEventListener("DOMContentLoaded", function () {
     const monthNum = months[mon];
     if (!monthNum) return null;
 
-    // Parse time (e.g., "14:30:00")
     const timeParts = timePart.split(":");
     if (timeParts.length < 2) return null;
 
     const [hour, minute] = timeParts;
 
-    // Return ISO 8601 format for FullCalendar
-    return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`;
+    return `${year}-${monthNum}-${day.padStart(2, "0")}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}`;
+  }
+
+  // Convert "yyyy-MM-ddTHH:mm" (input) to "DD-Mon-YYYY HH:mm:ss" (Zoho)
+  function formatDateTimeForZoho(dateTimeStr) {
+    if (!dateTimeStr) return "";
+    const date = new Date(dateTimeStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = "00";
+    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+  }
+
+  // Convert "yyyy-MM-dd" to "DD-Mon-YYYY" for Zoho Date fields
+  function formatDateForZoho(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   }
 
   // Global functions to show/hide loader
@@ -203,7 +226,93 @@ document.addEventListener("DOMContentLoaded", function () {
 
   calendar.render();
 
+  // ---------- 2.1 Fetch Support Workers for Specific Participant ----------
+  async function fetchSupportWorkersForParticipant(participantID) {
+    console.log("========== FETCH SUPPORT WORKERS START ==========");
+    console.log("Step 1: participantID received:", participantID);
+
+    if (!participantID) {
+      console.log("Step 2: No participantID — loading ALL support workers");
+      await loadSupportWorkers();
+      console.log("========== FETCH SUPPORT WORKERS END ==========");
+      return;
+    }
+
+    showLoader();
+    try {
+      console.log("Step 2: Building config for custom API...");
+
+      const config = {
+        api_name: "Fetch_the_supp_workers",
+        http_method: "POST",
+        content_type: "application/json",
+        payload: {
+          "participant_name": participantID
+        }
+      };
+      console.log("Step 3: Config object:", JSON.stringify(config, null, 2));
+
+      console.log("Step 4: Calling ZOHO.CREATOR.DATA.invokeCustomApi...");
+      const response = await ZOHO.CREATOR.DATA.invokeCustomApi(config);
+
+      console.log("Step 5: Raw response:", JSON.stringify(response, null, 2));
+      console.log("Step 5a: response.data:", JSON.stringify(response.data, null, 2));
+      console.log("Step 5b: response type:", typeof response);
+      console.log("Step 5c: response.code:", response.code);
+
+      const data = response.result || response.data || response;
+
+      console.log("Step 6: Data to process:", JSON.stringify(data, null, 2));
+      console.log("Step 6a: Is Array?", Array.isArray(data));
+      console.log("Step 6b: Data length:", data?.length);
+
+      const workerDropdown = document.getElementById("workerFilter");
+
+      if (workerDropdown) {
+        workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
+      }
+
+      if (data && Array.isArray(data)) {
+        data.forEach((w) => {
+          const name = typeof w === 'string' ? w : (w.display_value || w.zc_display_value || w.name || "Unknown");
+          let id = w.ID || w.id || "";
+
+          if (!id && allSupportWorkersCache.length > 0) {
+            const matchedWorker = allSupportWorkersCache.find(sw => {
+              const swName = sw.Name?.zc_display_value || sw.Name?.first_name || "";
+              return swName === name;
+            });
+            if (matchedWorker) id = matchedWorker.ID;
+          }
+
+          if (!id) id = name;
+
+          if (workerDropdown) {
+            const opt = document.createElement("option");
+            opt.value = id;
+            opt.textContent = name;
+            workerDropdown.appendChild(opt);
+          }
+        });
+      }
+
+      console.log("Step 8: Dropdown now has", workerDropdown.options.length, "options");
+      console.log("========== FETCH SUPPORT WORKERS SUCCESS ==========");
+
+    } catch (e) {
+      console.error("========== FETCH SUPPORT WORKERS ERROR ==========");
+      console.error("Error message:", e.message);
+      console.error("Error details:", JSON.stringify(e, null, 2));
+      console.error("Full error:", e);
+      console.log("Falling back to loading all support workers...");
+      await loadSupportWorkers();
+    } finally {
+      hideLoader();
+    }
+  }
+
   // ---------- 2️⃣ Load Support Workers ----------
+
   async function loadSupportWorkers() {
     showLoader();
     try {
@@ -223,7 +332,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const params = {
-          app_name: "calender-includa",
+          app_name: "calendar-includa",
           report_name: "All_Support_Workers",
           max_records: maxRecords
         };
@@ -256,24 +365,22 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       console.log(`Total support workers loaded: ${allWorkers.length}`);
+      allSupportWorkersCache = allWorkers; // Cache for lookup
 
       const workerDropdown = document.getElementById("workerFilter");
-      if (!workerDropdown) return;
 
-      workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
+      if (workerDropdown) workerDropdown.innerHTML = `<option value="">— All Workers —</option>`;
 
       allWorkers.forEach(w => {
-        const name =
-          w.Name?.first_name ||
-          w.Name?.zc_display_value ||
-          "Unknown";
+        const name = w.Name?.zc_display_value || w.Name?.first_name || "Unknown";
+        const id = w.ID;
 
-        const opt = document.createElement("option");
-        opt.value = w.ID;                // ✅ lookup ID
-        opt.textContent = name;
-        // Use name instead of ID for filtering
-        opt.textContent = name;
-        workerDropdown.appendChild(opt);
+        if (workerDropdown) {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = name;
+          workerDropdown.appendChild(opt);
+        }
       });
 
       console.log("Support workers dropdown populated successfully");
@@ -303,7 +410,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const params = {
-          app_name: "calender-includa",
+          app_name: "calendar-includa",
           report_name: "All_Participants",
           max_records: maxRecords
         };
@@ -339,28 +446,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const participantDropdown = document.getElementById("participantFilter");
 
-      if (!participantDropdown) {
-        console.error("Participant dropdown not found!");
-        return;
-      }
-
-      // Reset to default option
-      participantDropdown.innerHTML = `<option value="">— All Participants —</option>`;
+      if (participantDropdown) participantDropdown.innerHTML = `<option value="">— All Participants —</option>`;
 
       allParticipants.forEach(p => {
-        const name =
-          p.Participant_Name?.zc_display_value ||
-          p.Participant_Name?.first_name ||
-          p.Name?.first_name ||
-          p.Name?.zc_display_value ||
-          p.First_Name ||
-          p.name ||
-          "Unknown";
+        const name = p.Participant_Name?.zc_display_value || p.Participant_Name?.first_name || p.Name?.first_name || p.Name?.zc_display_value || p.First_Name || p.name || "Unknown";
+        const id = p.ID;
 
-        const opt = document.createElement("option");
-        opt.value = p.ID;
-        opt.textContent = name;
-        participantDropdown.appendChild(opt);
+        if (participantDropdown) {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = name;
+          participantDropdown.appendChild(opt);
+        }
       });
 
       console.log("Participants dropdown populated successfully");
@@ -405,7 +502,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const params = {
-          app_name: "calender-includa",
+          app_name: "calendar-includa",
           report_name: "All_Bookings",
           max_records: maxRecords
         };
@@ -475,8 +572,8 @@ document.addEventListener("DOMContentLoaded", function () {
             title: `${participantName} - ${workerName}`,
             start: startDateTime,
             end: endDateTime,
-            backgroundColor: "#007bff",
-            borderColor: "#007bff",
+            backgroundColor: "#9BD8D9",
+            borderColor: "#9BD8D9",
             extendedProps: {
               participantID,
               workerID, // ✅ lookup ID
@@ -567,6 +664,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Clear calendar
     calendar.removeAllEvents();
+
+    // Reload all support workers to restore the full list
+    loadSupportWorkers();
   });
 
   // ---------- 🔟 Searchable Dropdown Functionality ----------
@@ -676,20 +776,32 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // When selecting from dropdown, update search input and close dropdown
-  participantDropdown.addEventListener("change", function () {
+  // When selecting from dropdown, update search input, close dropdown AND fetch associated workers
+  participantDropdown.addEventListener("change", async function () {
     const selectedOption = this.options[this.selectedIndex];
+    const participantName = selectedOption.textContent;
+    const participantID = selectedOption.value;
+
     // Show selected option text in search field (including "All Participants")
-    participantSearchInput.value = selectedOption.textContent;
+    participantSearchInput.value = participantName;
     hideDropdown(participantDropdown, participantSearchInput);
+
+    // Fetch support workers for this participant using their ID
+    await fetchSupportWorkersForParticipant(participantID);
   });
 
   // Handle click events on dropdown options (for already-selected items)
-  participantDropdown.addEventListener("click", function (e) {
+  participantDropdown.addEventListener("click", async function (e) {
     if (e.target.tagName === "OPTION") {
       const selectedOption = e.target;
-      participantSearchInput.value = selectedOption.textContent;
+      const participantName = selectedOption.textContent;
+      const participantID = selectedOption.value;
+
+      participantSearchInput.value = participantName;
       hideDropdown(participantDropdown, participantSearchInput);
+
+      // Fetch support workers for this participant using their ID
+      await fetchSupportWorkersForParticipant(participantID);
     }
   });
 
@@ -709,11 +821,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // Helper to get ISO string in local timezone (YYYY-MM-DDTHH:mm)
+  function getLocalIsoString(date) {
+    const offset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - offset);
+    return localDate.toISOString().slice(0, 16);
+  }
+
   // ---------- 4️⃣.5 Open Form with Pre-filled Data ----------
   function openFormWithPrefilledData(participantID, workerValue, clickedDate) {
     const iframe = document.getElementById("crmFormFrame");
 
-    // Format clicked date to "DD-Mon-YYYY 00:00:00" format (e.g., "20-Jan-2026 00:00:00")
+    // Format clicked date to "DD-Mon-YYYY 00:00:00" format
     const date = new Date(clickedDate);
     const day = String(date.getDate()).padStart(2, '0');
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -722,99 +841,59 @@ document.addEventListener("DOMContentLoaded", function () {
     const formattedStartDate = `${day}-${month}-${year} 00:00:00`;
 
     // Build URL with pre-filled fields
-    let url = "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M" +
+    let url = "https://creatorapp.zohopublic.com/zoho_hello694/calendar-includa/form-embed/Booking_Form/zSqPnOQpPg6MYUR8NSeXX4AafJr0hz5wqy5aT0XnYsJFx04Xy1dOqUa53wGYXt18FCAXz17fsnmpkJHWSbkGUreBDZZYKBWZ3mTm" +
       "?embed=true&hide_header=true&formAutoResize=true";
 
-    // Add participant if selected
     if (participantID) {
       url += "&Participant=" + encodeURIComponent(participantID);
     }
-
-    // Add support worker if selected
     if (workerValue) {
       url += "&Support_worker2=" + encodeURIComponent(workerValue);
     }
-
-    // Add start date and time
     url += "&Start_Date_and_Time=" + encodeURIComponent(formattedStartDate);
 
     iframe.src = url;
 
-    new bootstrap.Modal(
-      document.getElementById("creatorFormModal")
-    ).show();
+    new bootstrap.Modal(document.getElementById("creatorFormModal")).show();
   }
 
-  // ---------- 4️⃣ Open Blank Form ----------
-  function openBlankForm() {
-    const iframe = document.getElementById("crmFormFrame");
-
-    iframe.src =
-      "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M" +
-      "?embed=true&hide_header=true&formAutoResize=true";
-
-    new bootstrap.Modal(
-      document.getElementById("creatorFormModal")
-    ).show();
-  }
-
-  // ---------- 5️⃣ Prefill Form ----------
+  // ---------- 5️⃣ Prefill Form (Edit Mode) ----------
   function prefillForm(event) {
-
-    const workerValue = event.extendedProps.workerID || "";
-    const participantID = event.extendedProps.participantID || "";
-    const rawStart = event.extendedProps.rawStart || "";
-    const rawEnd = event.extendedProps.rawEnd || "";
-    const status = event.extendedProps.status || "";
-    const crmLink = event.extendedProps.crmLink || "";
-    const Booking_Type = event.extendedProps.Booking_Type || ""
-
-
-    console.log("Prefill values:", {
-      workerValue,
-      participantID,
-      rawStart,
-      rawEnd,
-      status,
-      crmLink,
-      Booking_Type
-    });
-
+    const props = event.extendedProps;
     const iframe = document.getElementById("crmFormFrame");
 
-    const baseUrl =
-      "https://creatorapp.zohopublic.com/zoho_hello694/calender-includa/form-embed/Booking_Form/BHpO2XsT54Ma22NXYmxkyUJbA9FCaMFwsqDtzmsjzRpp8Zr9GtZxXHqZTSwrV5hmK29s3NtbS6qtQ8HhPNkjt9g0Nj5nbsy9Cx6M";
+    const baseUrl = "https://creatorapp.zohopublic.com/zoho_hello694/calendar-includa/form-embed/Booking_Form/zSqPnOQpPg6MYUR8NSeXX4AafJr0hz5wqy5aT0XnYsJFx04Xy1dOqUa53wGYXt18FCAXz17fsnmpkJHWSbkGUreBDZZYKBWZ3mTm";
 
-    iframe.src =
-      `${baseUrl}` +
-      `?Support_worker2=${encodeURIComponent(workerValue)}` +
-      `&Participant=${encodeURIComponent(participantID)}` +
-      `&Start_Date_and_Time=${encodeURIComponent(rawStart)}` +
-      `&End_Date_and_Time=${encodeURIComponent(rawEnd)}` +
-      `&Status=${encodeURIComponent(status)}` +
-      `&Url.url=${encodeURIComponent(crmLink)}` +
-      `&Url.title=${encodeURIComponent("Open CRM Record")}` +
-      `&Recurring1=${encodeURIComponent(Booking_Type)}` +
-      `&embed=true&hide_header=true&formAutoResize=true`;
+    let url = `${baseUrl}?embed=true&hide_header=true&formAutoResize=true` +
+      `&Support_worker2=${encodeURIComponent(props.workerID || "")}` +
+      `&Participant=${encodeURIComponent(props.participantID || "")}` +
+      `&Start_Date_and_Time=${encodeURIComponent(props.rawStart || "")}` +
+      `&End_Date_and_Time=${encodeURIComponent(props.rawEnd || "")}` +
+      `&Status=${encodeURIComponent(props.status || "")}` +
+      `&Recurring1=${encodeURIComponent(props.Booking_Type || "")}`;
 
-    new bootstrap.Modal(
-      document.getElementById("creatorFormModal")
-    ).show();
+    if (props.crmLink) {
+      url += `&Url.url=${encodeURIComponent(props.crmLink)}` +
+             `&Url.title=${encodeURIComponent("Open CRM Record")}`;
+    }
+
+    iframe.src = url;
+
+    new bootstrap.Modal(document.getElementById("creatorFormModal")).show();
   }
-
 
   // ---------- 6️⃣ Refresh Calendar After Save ----------
-  document
-    .getElementById("crmFormFrame")
-    .addEventListener("load", function () {
-      try {
-        const url = this.contentWindow.location.href;
-        if (url.includes("success") || url.includes("thankyou")) {
-          loadBookings();
-        }
-      } catch (e) {
-        // cross-origin ignore
+  document.getElementById("crmFormFrame").addEventListener("load", function () {
+    try {
+      const url = this.contentWindow.location.href;
+      if (url.includes("success") || url.includes("thankyou")) {
+        // Success! Hide modal and refresh
+        bootstrap.Modal.getInstance(document.getElementById("creatorFormModal")).hide();
+        loadBookings();
       }
-    });
+    } catch (e) {
+      // Cross-origin ignore
+    }
+  });
 
 });

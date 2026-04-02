@@ -2,8 +2,10 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <title>Scheduling POC - Filterable Calendar</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
@@ -32,65 +34,66 @@
       overflow-y: auto !important;
       overflow-x: hidden !important;
       padding: 0 !important;
-      height: 75vh !important;
-      max-height: 750px !important;
+      max-height: 80vh !important;
       -webkit-overflow-scrolling: touch;
     }
 
     .modal-dialog {
       max-width: 95% !important;
-      width: 900px !important;
+      width: 800px !important;
       margin: 1.75rem auto;
     }
 
     .modal-content {
-      max-height: 88vh;
-      overflow: hidden;
+      border-radius: 16px;
+      border: none;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
 
     .modal-header {
       flex-shrink: 0;
-      border-bottom: 1px solid #dee2e6;
-      padding: 1rem 1.5rem;
+      border-bottom: 
+      1px solid #f1f5f9;
+      padding: 1.25rem 1.5rem;
     }
   </style>
 </head>
 
 <body>
 
+
   <!-- 🔹 Filters + Actions -->
   <div class="topbar">
     <div class="filters">
-      <label for="participantSearch"
-        style="font-size: 14px; margin-right: 8px;padding-bottom: 8px; font-weight: 500;">Participant:</label>
-      <div style="display: inline-block; position: relative;">
-        <input id="participantSearch" type="text" class="form-control" placeholder="Search participant..."
-          style="width:280px; font-size: 14px; padding: 8px 10px;" autocomplete="off" />
-        <select id="participantFilter" class="form-select searchable-dropdown"
-          style="width:280px; height: 280px; display: none;" size="8">
-          <option value="">— All Participants —</option>
-        </select>
+      <div class="filter-group">
+        <label for="participantSearch">Participant</label>
+        <div style="position: relative;">
+          <input id="participantSearch" type="text" class="form-control" placeholder="Search participant..."
+            style="width:280px;" autocomplete="off" />
+          <select id="participantFilter" class="form-select searchable-dropdown"
+            style="display: none;" size="8">
+            <option value="">— All Participants —</option>
+          </select>
+        </div>
       </div>
 
-      <label for="workerSearch"
-        style="font-size: 14px; margin-right: 8px;padding-bottom: 8px; margin-left: 16px; font-weight: 500;">Support
-        Worker:</label>
-      <div style="display: inline-block; position: relative;">
-        <input id="workerSearch" type="text" class="form-control" placeholder="Search worker..."
-          style="width:260px; font-size: 14px; padding: 8px 10px;" autocomplete="off" />
-        <select id="workerFilter" class="form-select searchable-dropdown"
-          style="width:260px; height: 280px; display: none;" size="8">
-          <option value="">— All Workers —</option>
-        </select>
+      <div class="filter-group">
+        <label for="workerSearch">Support Worker</label>
+        <div style="position: relative;">
+          <input id="workerSearch" type="text" class="form-control" placeholder="Search worker..."
+            style="width:260px;" autocomplete="off" />
+          <select id="workerFilter" class="form-select searchable-dropdown"
+            style="display: none;" size="8">
+            <option value="">— All Workers —</option>
+          </select>
+        </div>
       </div>
 
-      <button id="submitFilters" class="btn btn-primary"
-        style="padding: 8px 18px; font-size: 14px; margin-left: 16px;">Search</button>
-      <button id="clearFilters" class="btn btn-outline-secondary" style="padding: 8px 18px; font-size: 14px;">Clear
-        Filters</button>
+      <div class="action-buttons">
+        <button id="submitFilters" class="btn btn-primary">Search</button>
+        <button id="clearFilters" class="btn btn-outline-secondary">Clear Filters</button>
+      </div>
     </div>
-  </div>
-  </div>
   </div>
 
   <!-- 🔹 Calendar Area -->
@@ -106,7 +109,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
 
-        <div class="modal-body p-0">
+        <div class="modal-body">
           <iframe id="crmFormFrame" width="100%" height="550" frameborder="0" style="border:none; border-radius:8px;"
             allowTransparency="true" scrolling="no">
           </iframe>
@@ -123,38 +126,7 @@
   <script src="widget.js"></script>
 
   <script>
-    // Prevent iframe from trying to resize dynamically (which can cause breaks)
-    window.addEventListener("message", function (e) {
-      // Only log, don't resize - let CSS handle it
-      if (e.data && e.data.height) {
-        console.log("Form height message received:", e.data.height);
-      }
-    });
-
-    // Fast reload only after successful form submission
-    let needsReload = false;
-
-    document.getElementById('creatorFormModal').addEventListener('hidden.bs.modal', function () {
-      // Mark for reload after modal closes (if form was submitted)
-      if (needsReload) {
-        const iframe = document.getElementById('creatorFormFrame');
-        iframe.src = iframe.src; // Quick reload
-        needsReload = false;
-      }
-    });
-
-    // Detect when form is submitted successfully
-    const iframe = document.getElementById('creatorFormFrame');
-    iframe.addEventListener('load', function () {
-      try {
-        const url = iframe.contentWindow.location.href;
-        if (url.includes('success') || url.includes('thankyou')) {
-          needsReload = true; // Mark that we need to reload next time
-        }
-      } catch (e) {
-        // Cross-origin, can't check URL
-      }
-    });
+    // Removed iframe-specific logic, now handled natively
   </script>
   <div id="loader" class="loader-overlay">
     <div class="loader-spinner"></div>

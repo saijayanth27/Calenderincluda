@@ -1,461 +1,289 @@
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  padding: 12px;
-  background: #f7f9fc;
+:root {
+  --brand-blue: #9BD8D9;
+  --brand-charcoal: #2C2C2C;
+  --brand-white: #ffffff;
+  --bg-color: #f8fafc;
+  --text-main: #2C2C2C;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --premium-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
 }
 
-.topbar {
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  padding: 24px;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+/* 🔹 Brand Header Styling */
+.brand-header {
   display: flex;
-  gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
+  gap: 12px;
+}
+
+.logo-text {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: var(--brand-charcoal);
+  display: flex;
+  align-items: baseline;
+}
+
+.logo-text span {
+  color: var(--brand-blue);
+  position: relative;
+}
+
+/* 🔹 Topbar & Filters Styling */
+.topbar {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
 }
 
 .filters {
   display: flex;
-  gap: 12px;
+  gap: 20px;
   align-items: flex-end;
+  flex-wrap: wrap;
 }
 
-.filters>div {
-  display: flex;
-  flex-direction: column;
+.filters label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
-.filters select[size] {
-  height: auto !important;
-  max-height: 200px;
-  overflow-y: auto;
+.form-control, .form-select {
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  font-size: 14px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-/* Enhanced searchable dropdown styling */
-#participantSearch,
-#workerSearch {
-  border-radius: 4px !important;
+.form-control:focus, .form-select:focus {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgba(155, 216, 217, 0.2);
+  outline: none;
 }
 
-#participantSearch.dropdown-open,
-#workerSearch.dropdown-open {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-  border-bottom: none !important;
+.btn-primary {
+  background-color: var(--brand-blue);
+  border: none;
+  color: var(--brand-charcoal);
+  font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
+.btn-primary:hover {
+  background-color: #8acbc0;
+  color: var(--brand-charcoal);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(155, 216, 217, 0.3);
+}
+
+.btn-outline-secondary {
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 10px 24px;
+  border-radius: 8px;
+}
+
+.btn-outline-secondary:hover {
+  background: #f1f5f9;
+  color: var(--brand-charcoal);
+  border-color: #cbd5e1;
+}
+
+/* 🔹 Searchable Dropdown */
 .searchable-dropdown {
   position: absolute;
   top: 100%;
   left: 0;
+  width: 100%;
   z-index: 1000;
-  border-top-left-radius: 0 !important;
-  border-top-right-radius: 0 !important;
-  border-top: 1px solid #dee2e6 !important;
-  font-size: 14px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   background: white;
-  margin-top: -1px;
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: var(--premium-shadow);
+  max-height: 250px;
+  overflow-y: auto;
 }
 
-.searchable-dropdown option {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.searchable-dropdown option:hover {
-  background-color: #f0f0f0;
-}
-
+/* 🔹 Calendar Container */
 #calendar {
   background: white;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--premium-shadow);
+  border: 1px solid var(--border-color);
 }
 
-.legend {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
+/* 🔹 FullCalendar Customization */
+.fc .fc-toolbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--brand-charcoal);
 }
 
-.legend .chip {
-  padding: 6px 10px;
-  border-radius: 999px;
-  color: white;
-  font-size: 13px;
+.fc .fc-button-primary {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-weight: 500;
+  text-transform: capitalize;
+  padding: 8px 16px;
+  border-radius: 6px;
 }
 
-.mass-actions {
-  margin-left: auto;
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.fc .fc-button-primary:not(:disabled):hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: var(--brand-charcoal);
 }
 
-.selected-count {
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: var(--brand-charcoal);
+}
+
+.fc .fc-col-header-cell {
+  background: #f8fafc;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: var(--text-muted);
   font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: none !important;
 }
 
-.fc .fc-toolbar-chunk {
-  gap: 8px;
-}
-
-/* Modal Styling - Respects Form Layout */
-.modal-dialog {
-  max-width: 95% !important;
-  width: 900px !important;
-  margin: 1.75rem auto;
-}
-
-.modal-content {
-  border-radius: 10px;
-  overflow: hidden;
-  max-height: 88vh;
-}
-
-.modal-header {
-  flex-shrink: 0;
-  border-bottom: 1px solid #dee2e6;
-  padding: 1rem 1.5rem;
-}
-
-.modal-body {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 0 !important;
-  height: 75vh !important;
-  max-height: 750px !important;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Iframe - Natural height, lets form render properly */
-#creatorFormFrame {
+/* Event Styling */
+.fc-event {
+  background-color: var(--brand-blue) !important;
   border: none !important;
-  width: 100% !important;
-  min-height: 600px;
-  height: auto;
-  overflow: visible !important;
-  display: block;
-}
-
-.modal-body iframe {
-  scrollbar-width: thin;
-}
-
-/* ========================================
-   MONTH VIEW STYLING
-   ======================================== */
-
-/* Month view: Full day names, left-aligned, black text, no underline */
-.fc-dayGridMonth-view .fc-col-header-cell-cushion {
-  text-align: left !important;
-  padding-left: 8px !important;
-  color: #000000 !important;
-  text-decoration: none !important;
-  font-weight: 500 !important;
-}
-
-/* Month view: Date numbers left-aligned and black */
-.fc-dayGridMonth-view .fc-daygrid-day-number {
-  text-align: left !important;
-  padding-left: 8px !important;
-  color: #000000 !important;
-  text-decoration: none !important;
-}
-
-/* Remove any underlines from day headers in month view */
-.fc-dayGridMonth-view .fc-col-header-cell a {
-  text-decoration: none !important;
-}
-
-/* Force date numbers to extreme left */
-.fc-daygrid-day-top {
-  justify-content: flex-start !important;
-}
-
-.fc-daygrid-day-frame {
-  text-align: left !important;
-}
-
-/* Override FullCalendar's default right alignment for dates - FORCE LEFT */
-.fc-daygrid-day-number,
-.fc-daygrid-day-top .fc-daygrid-day-number,
-a.fc-daygrid-day-number {
-  float: none !important;
-  text-align: left !important;
-  padding-left: 4px !important;
-  padding-right: 0 !important;
-  margin: 0 !important;
-  display: block !important;
-  width: 100% !important;
-}
-
-.fc-daygrid-day-top {
-  display: flex !important;
-  justify-content: flex-start !important;
-  align-items: flex-start !important;
-  text-align: left !important;
-}
-
-.fc-daygrid-day-frame {
-  text-align: left !important;
-}
-
-/* Additional override for the day cell */
-.fc-daygrid-day {
-  text-align: left !important;
-}
-
-/* Custom date cell styling */
-.custom-date-cell {
-  text-align: left !important;
-  padding: 4px !important;
-  margin: 0 !important;
-}
-
-/* ========================================
-   WEEK/DAY VIEW STYLING
-   ======================================== */
-
-/* Week/Day view: Left-align date headers */
-.fc-timeGridWeek-view .fc-col-header-cell-cushion,
-.fc-timeGridDay-view .fc-col-header-cell-cushion {
-  text-align: left !important;
-  padding-left: 8px !important;
-  text-decoration: none !important;
-  justify-content: flex-start !important;
-}
-
-.fc-timeGridWeek-view .fc-col-header-cell,
-.fc-timeGridDay-view .fc-col-header-cell {
-  text-align: left !important;
-}
-
-/* Remove underlines from week/day view headers */
-.fc-timeGridWeek-view .fc-col-header-cell a,
-.fc-timeGridDay-view .fc-col-header-cell a {
-  text-decoration: none !important;
-}
-
-
-/* ========================================
-   TIME AXIS STYLING
-   ======================================== */
-
-/* Time labels: Format as "number AM/PM" in uppercase */
-.fc-timegrid-slot-label-cushion {
-  text-transform: uppercase !important;
-}
-
-/* Ensure proper spacing in time labels */
-.fc-timegrid-slot-label {
-  vertical-align: middle !important;
-}
-
-/* ========================================
-   EVENT DISPLAY OPTIMIZATION
-   ======================================== */
-
-/* Increase time slot height in week/day view for more space */
-.fc-timegrid-slot {
-  height: 60px !important;
-}
-
-/* Ensure all events have consistent styling - white text on blue background */
-.fc-event,
-.fc-event-main {
-  background-color: #007bff !important;
-  border-color: #0056b3 !important;
-  color: #ffffff !important;
+  border-left: 4px solid rgba(0, 0, 0, 0.1) !important;
   border-radius: 6px !important;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2) !important;
-  transition: all 0.2s ease !important;
+  padding: 2px !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease !important;
 }
 
-/* Hover effect for events */
 .fc-event:hover {
-  background-color: #0056b3 !important;
-  box-shadow: 0 3px 8px rgba(0, 123, 255, 0.35) !important;
-  transform: translateY(-1px);
+  transform: scale(1.02);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
 }
 
-/* Event title styling */
+.fc-event-main {
+  color: var(--brand-charcoal) !important;
+}
+
 .fc-event-title {
-  font-size: 12px !important;
-  line-height: 1.3 !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  color: #ffffff !important;
-  font-weight: 500 !important;
-  display: block !important;
-  word-break: break-word !important;
-}
-
-/* Event time styling */
-.fc-event-time {
-  font-size: 10px !important;
-  font-weight: 700 !important;
-  color: #ffffff !important;
-  margin-bottom: 3px !important;
-  opacity: 0.95 !important;
-  letter-spacing: 0.3px !important;
-}
-
-/* Ensure events have minimum height for readability */
-.fc-timegrid-event {
-  min-height: 40px !important;
-  border-width: 1px !important;
-}
-
-/* Style the "+more" link in month view */
-.fc-daygrid-more-link {
-  font-size: 11px !important;
-  color: #007bff !important;
   font-weight: 600 !important;
-  margin-top: 2px !important;
+  font-size: 12px !important;
 }
 
-/* Improve event spacing in week/day view */
-.fc-timegrid-event-harness {
-  margin-right: 3px !important;
+.fc-event-time {
+  font-weight: 500 !important;
+  font-size: 10px !important;
+  opacity: 0.8;
 }
 
-/* Better text display for stacked events */
-.fc-event-main {
-  padding: 5px 6px !important;
-  height: 100% !important;
-}
-
-/* Ensure month view events also have consistent styling */
-.fc-daygrid-event {
-  background-color: #007bff !important;
-  border-color: #0056b3 !important;
-  color: #ffffff !important;
-  border-radius: 4px !important;
-  padding: 0 !important;
-  /* Managed by fc-event-main-frame */
-  height: auto !important;
-  min-height: 45px !important;
-}
-
-.fc-daygrid-event:hover {
-  background-color: #0056b3 !important;
-}
-
-.fc-daygrid-event-dot {
-  border-color: #007bff !important;
-}
-
-/* Make all events show pointer cursor on hover */
-.fc-event,
-.fc-daygrid-event,
-.fc-timegrid-event {
-  cursor: pointer !important;
-}
-
-.fc-event-main {
-  cursor: pointer !important;
-}
-
-/* Improve event main frame layout */
-.fc-event-main-frame {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
-  padding: 6px 8px !important;
-}
-
-/* Better text wrapping for event titles */
-.fc-event-title-container {
-  flex: 1 !important;
-  overflow: hidden !important;
-}
-
-/* Limit event width in day/week views for better multi-event display */
-.fc-timegrid-event {
-  max-width: 180px !important;
-  min-width: 150px !important;
-  width: auto !important;
-}
-
-/* Add spacing between multiple events in same slot */
-.fc-timegrid-event-harness-inset {
-  margin-right: 6px !important;
-}
-
-/* Ensure events don't stretch to full width */
-.fc-timegrid-event .fc-event-main {
-  width: 100% !important;
-  max-width: 180px !important;
-}
-
-/* Improve spacing between event columns */
-.fc-timegrid-col-events {
-  margin: 0 2px !important;
-}
-
-/* Month view - ensure day names are left-aligned */
-.fc-col-header-cell {
-  text-align: left !important;
-}
-
-.fc-col-header-cell-cushion {
-  justify-content: flex-start !important;
-  padding-left: 8px !important;
-}
-
-/* Month view - ensure dates are left-aligned */
-.fc-daygrid-day-top {
-  justify-content: flex-start !important;
-  text-align: left !important;
-}
-
+/* Day cell overrides */
 .fc-daygrid-day-number {
-  padding: 4px 8px !important;
-  text-align: left !important;
+  color: var(--text-main);
+  font-weight: 500;
+  padding: 8px !important;
+  text-decoration: none !important;
 }
 
-/* ========================================
-   LOADER OVERLAY STYLING
-   ======================================== */
+.fc-daygrid-day.fc-day-today {
+  background-color: rgba(155, 216, 217, 0.05) !important;
+}
+
+
+/* 🔹 Specific Modal Overrides */
+.modal-title {
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.5px;
+  color: var(--brand-charcoal);
+}
+
 .loader-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.7);
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(4px);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 9999;
-  visibility: hidden;
-  opacity: 0;
-  transition: visibility 0s, opacity 0.3s linear;
-}
-
-.loader-overlay.active {
-  visibility: visible;
-  opacity: 1;
+  justify-content: center;
+  z-index: 1050;
+  transition: opacity 0.3s ease;
 }
 
 .loader-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #007bff;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  border: 4px solid #f1f5f9;
+  border-top: 4px solid var(--brand-blue);
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
-  100% {
-    transform: rotate(360deg);
-  }
+/* Loader global state */
+#loader {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+}
+
+#loader.active {
+  display: flex;
+}
+
+/* Legend */
+.legend {
+  margin-top: 20px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.legend .chip {
+  background-color: var(--brand-blue);
+  color: var(--brand-charcoal);
+  font-weight: 600;
+  padding: 4px 12px;
 }
